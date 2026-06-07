@@ -481,13 +481,6 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   const rupamVal = document.getElementById('watermark-rupam')?.value?.trim() || settings.rupam || 'RUPAM I';
   ctx.fillText(rupamVal, detailX + 14 * scale, detailY);
 
-  // 7. Draw Marki text watermark in bottom-right corner of photo
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.font = `italic bold ${12 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText('Marki', px + pW - 15 * scale, py + pH - 15 * scale);
-
   ctx.restore();
 }
 
@@ -525,64 +518,7 @@ function drawChevronPattern(ctx, width, height) {
   ctx.restore();
 }
 
-function drawMarkiLogo(ctx, cx, cy, height) {
-  ctx.save();
-  const scale = height / 40;
-  const iconSize = 38 * scale;
-  const totalW = 130 * scale;
-  const startX = cx - totalW / 2;
-  const startY = cy - iconSize / 2;
-  
-  // Blue rounded rect icon background
-  ctx.fillStyle = '#0f4cff';
-  roundRect(ctx, startX, startY, iconSize, iconSize, 8 * scale);
-  ctx.fill();
-  
-  // White camera shape
-  ctx.fillStyle = '#ffffff';
-  const camW = 22 * scale;
-  const camH = 15 * scale;
-  const camX = startX + (iconSize - camW) / 2;
-  const camY = startY + (iconSize - camH) / 2 + 2 * scale;
-  roundRect(ctx, camX, camY, camW, camH, 3 * scale);
-  ctx.fill();
-  
-  ctx.beginPath();
-  ctx.arc(camX + camW / 2, camY - 1.5 * scale, 3 * scale, 0, Math.PI, true);
-  ctx.fill();
-  
-  ctx.strokeStyle = '#0f4cff';
-  ctx.lineWidth = 2.5 * scale;
-  ctx.beginPath();
-  ctx.arc(camX + camW / 2, camY + camH / 2, 4.5 * scale, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  ctx.fillStyle = '#ff3b30';
-  ctx.beginPath();
-  ctx.arc(camX + camW - 4.5 * scale, camY + 4 * scale, 1.5 * scale, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Text "Marki"
-  ctx.font = `bold ${30 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillStyle = '#0f4cff';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  
-  const textX = startX + iconSize + 10 * scale;
-  const textY = cy;
-  ctx.fillText('Mark', textX, textY);
-  
-  const markW = ctx.measureText('Mark').width;
-  const iX = textX + markW;
-  ctx.fillRect(iX + 3 * scale, textY - 3 * scale, 4 * scale, 11 * scale);
-  
-  ctx.fillStyle = '#ff4d00';
-  ctx.beginPath();
-  ctx.arc(iX + 5 * scale, textY - 9 * scale, 3 * scale, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.restore();
-}
+
 
 function onWatermarkFieldChange() {
   settings.sst = document.getElementById('watermark-sst').value.trim();
@@ -730,7 +666,7 @@ async function buildGridImage() {
 
   const headerH = 150;
   const yellowH = 55;
-  const footerH = 90;
+  const footerH = 100;
 
   const totalW = cols * cellW + (cols - 1) * gap;
   const totalH = headerH + yellowH + rows * cellH + (rows - 1) * gap + footerH;
@@ -797,13 +733,19 @@ async function buildGridImage() {
       await new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
-          // Draw photo (cover fit)
+          // Draw photo (cover fit) with sharp cell clipping
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(cx, cy, cellW, cellH);
+          ctx.clip();
+          
           const iw = img.width, ih = img.height;
           const scale = Math.max(cellW/iw, cellH/ih);
           const dw = iw*scale, dh = ih*scale;
           const dx = cx + (cellW - dw)/2;
           const dy = cy + (cellH - dh)/2;
           ctx.drawImage(img, dx, dy, dw, dh);
+          ctx.restore();
 
           // Draw Marki Watermark for this cell
           const photoObj = gridPhotos[i];
@@ -835,8 +777,42 @@ async function buildGridImage() {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, footerY, totalW, footerH);
 
-  // Draw Marki logo centered in footer
-  drawMarkiLogo(ctx, totalW / 2, footerY + footerH / 2, 36);
+  // Get description (keterangan)
+  const ketText = document.getElementById('keterangan-input')?.value?.trim() || 'DOKUMENTASI LAPANGAN';
+  
+  ctx.save();
+  ctx.fillStyle = '#1e2d3d'; // elegant dark gray/blue text
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold 22px 'Exo 2', 'Arial', sans-serif`;
+  
+  // Wrap description text inside the footer
+  const footerWords = ketText.split(' ');
+  let line = '';
+  let lines = [];
+  const maxFooterLineW = totalW - 80;
+  
+  for (let n = 0; n < footerWords.length; n++) {
+    let testLine = line + footerWords[n] + ' ';
+    let testWidth = ctx.measureText(testLine).width;
+    if (testWidth > maxFooterLineW && n > 0) {
+      lines.push(line.trim());
+      line = footerWords[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+  
+  // Draw wrapped lines centered vertically in the footer
+  const lineCount = lines.length;
+  const footerLineH = 28;
+  const startLineY = footerY + footerH / 2 - ((lineCount - 1) * footerLineH) / 2;
+  
+  for (let j = 0; j < lineCount; j++) {
+    ctx.fillText(lines[j], totalW / 2, startLineY + j * footerLineH);
+  }
+  ctx.restore();
 
   return canvas.toDataURL('image/jpeg', 0.92);
 }
