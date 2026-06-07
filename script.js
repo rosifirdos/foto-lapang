@@ -4,6 +4,9 @@
 let stream = null;
 let facingMode = 'environment';
 let currentPhoto = null;
+let capturedTime = '';
+let capturedDate = '';
+let capturedSystemDate = null;
 let gpsData = { lat: null, lng: null, address: 'Mendapatkan alamat...', city: 'Sragen', raw: '' };
 let currentLayout = 1;
 let gridPhotos = [];
@@ -13,9 +16,12 @@ let gridCaptureMode = false;
 let pendingGridSlot = null;
 
 let settings = {
-  quickTitles: ['Pemasangan Internet','Survey Lokasi','Perbaikan Jaringan','Inspeksi Lapangan','Dokumentasi Proyek'],
+  quickTitles: ['Patroli Keamanan', 'Pemasangan Internet','Survey Lokasi','Perbaikan Jaringan','Inspeksi Lapangan','Dokumentasi Proyek'],
   templates: getNewDefaultTemplates(),
-  orgName: 'FieldCam'
+  orgName: 'ASTEKPAM LAPAS SRAGEN',
+  sst: 'PAGI',
+  karupam: 'WIJOKO',
+  rupam: 'RUPAM I'
 };
 
 function getNewDefaultTemplates() {
@@ -89,6 +95,16 @@ function goScreen(id) {
       const now = new Date();
       const waktuMenit = `${pad(now.getHours())}.${pad(now.getMinutes())}`;
       waktuInp.value = `${waktuMenit} WIB s.d selesai`;
+    }
+    // Populate the new watermark fields from settings
+    if (document.getElementById('watermark-sst')) {
+      document.getElementById('watermark-sst').value = settings.sst || 'PAGI';
+    }
+    if (document.getElementById('watermark-karupam')) {
+      document.getElementById('watermark-karupam').value = settings.karupam || 'WIJOKO';
+    }
+    if (document.getElementById('watermark-rupam')) {
+      document.getElementById('watermark-rupam').value = settings.rupam || 'RUPAM I';
     }
     populateTemplateSelect();
     updateTemplatePreview();
@@ -228,7 +244,12 @@ function capturePhoto() {
   // ── Grid capture mode ──
   if (gridCaptureMode && pendingGridSlot) {
     const { idx, n } = pendingGridSlot;
-    gridPhotos[idx] = dataURL;
+    gridPhotos[idx] = {
+      dataURL: dataURL,
+      time: currentTime,
+      date: currentDate,
+      systemDate: new Date()
+    };
     gridCaptureMode = false;
     pendingGridSlot = null;
     document.getElementById('grid-capture-bar').style.display = 'none';
@@ -241,6 +262,10 @@ function capturePhoto() {
 
   // ── Normal capture mode ──
   currentPhoto = dataURL;
+  capturedTime = currentTime;
+  capturedDate = currentDate;
+  capturedSystemDate = new Date();
+  
   renderResultCanvas(currentPhoto);
   goScreen('preview-screen');
   populateTemplateSelect();
@@ -260,72 +285,12 @@ function renderResultCanvas(photoDataURL, targetCanvas) {
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
+      // Draw the main photo
       ctx.drawImage(img, 0, 0, W, H);
 
-      // Bottom overlay bar height
-      const scale = Math.min(W, H) / 360;
-      const barH = Math.max(Math.floor(H * 0.22), Math.floor(115 * scale));
-      const barY = H - barH;
-
-      // Dark overlay
-      const grad = ctx.createLinearGradient(0, barY - barH*0.5, 0, H);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(0.4, 'rgba(0,0,0,0.75)');
-      grad.addColorStop(1, 'rgba(0,0,0,0.92)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, barY - barH*0.5, W, H - (barY - barH*0.5));
-
-      // Accent line
-      ctx.fillStyle = '#00d4ff';
-      ctx.fillRect(0, barY, W, 2);
-
-      const titleEl = document.getElementById('quick-title-select');
-      const titleVal = titleEl ? (titleEl.value || titleEl.options[titleEl.selectedIndex]?.text || 'FieldCam') : 'FieldCam';
-
-      const pad = 14 * scale;
-      let y = barY + 20 * scale;
-
-      // Org name
-      const orgName = settings.orgName || 'FieldCam';
-      ctx.font = `bold ${11 * scale}px 'Arial'`;
-      ctx.fillStyle = '#00d4ff';
-      ctx.fillText(orgName.toUpperCase(), pad, y);
-      y += 16 * scale;
-
-      // Title
-      ctx.font = `bold ${17 * scale}px 'Arial'`;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(titleVal !== '— Pilih Judul —' ? titleVal : 'Dokumentasi', pad, y);
-      y += 20 * scale;
-
-      // Date time
-      ctx.font = `${11 * scale}px 'Courier New'`;
-      ctx.fillStyle = '#a8c8d8';
-      ctx.fillText(`${currentDate}  ${currentTime}`, pad, y);
-      y += 15 * scale;
-
-      // Address
-      ctx.font = `${11 * scale}px 'Courier New'`;
-      ctx.fillStyle = '#00ff9d';
-      const addr = gpsData.address || 'Lokasi tidak tersedia';
-      const maxW = W - pad * 2;
-      ctx.fillText(truncateText(ctx, addr, maxW), pad, y);
-      y += 14 * scale;
-
-      // Coords
-      ctx.font = `${10 * scale}px 'Courier New'`;
-      ctx.fillStyle = '#88bbcc';
-      const coordText = gpsData.lat ? `${gpsData.lat}, ${gpsData.lng}` : 'GPS tidak tersedia';
-      ctx.fillText(coordText, pad, y);
-      y += 14 * scale;
-
-      // Keterangan
-      const ket = document.getElementById('keterangan-input')?.value?.trim();
-      if (ket) {
-        ctx.font = `${10 * scale}px 'Arial'`;
-        ctx.fillStyle = '#ccddee';
-        ctx.fillText(truncateText(ctx, ket, maxW), pad, y);
-      }
+      // Draw Marki Watermark
+      const scale = W / 1000;
+      drawMarkiWatermark(ctx, 0, 0, W, H, scale, 0);
 
       resolve(canvas.toDataURL('image/jpeg', 0.92));
     };
@@ -333,8 +298,273 @@ function renderResultCanvas(photoDataURL, targetCanvas) {
   });
 }
 
-function truncateText(ctx, text, maxWidth) {
-  return truncateCtxText(ctx, text, maxWidth);
+function getIndonesianDayName(dateObj) {
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  return days[dateObj.getDay()];
+}
+
+function formatIndonesianDate(dateObj) {
+  const pad = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return `${pad(dateObj.getDate())}-${months[dateObj.getMonth()]}-${dateObj.getFullYear()}`;
+}
+
+function formatIndonesianNumericDate(dateObj) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${pad(dateObj.getDate())}-${pad(dateObj.getMonth()+1)}-${dateObj.getFullYear()}`;
+}
+
+function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
+  ctx.save();
+
+  // Watermark box dimensions
+  const wW = 425 * scale;
+  const wH = 180 * scale;
+  const margin = 15 * scale;
+
+  const x = px + margin;
+  const y = py + pH - wH - margin;
+
+  // 1. Draw semi-transparent dark blue background
+  ctx.fillStyle = 'rgba(13, 40, 166, 0.65)';
+  ctx.fillRect(x, y, wW, wH);
+
+  // 2. Draw solid blue header bar
+  const headerH = 34 * scale;
+  ctx.fillStyle = 'rgb(13, 40, 166)';
+  ctx.fillRect(x, y, wW, headerH);
+
+  // 3. Draw organization name inside header
+  const orgName = (settings.orgName || 'ASTEKPAM LAPAS SRAGEN').toUpperCase();
+  const words = orgName.split(' ');
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  
+  if (words.length > 2) {
+    ctx.font = `bold ${10.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
+    ctx.fillText(words.slice(0, 2).join(' '), x + 12 * scale, y + headerH / 2 - 6 * scale);
+    ctx.fillText(words.slice(2).join(' '), x + 12 * scale, y + headerH / 2 + 7 * scale);
+  } else {
+    ctx.font = `bold ${13 * scale}px 'Exo 2', 'Arial', sans-serif`;
+    ctx.fillText(orgName, x + 12 * scale, y + headerH / 2);
+  }
+
+  // 4. Draw white vertical line separator
+  const sepX = x + 115 * scale;
+  const sepY1 = y + headerH + 10 * scale;
+  const sepY2 = y + wH - 10 * scale;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 1.2 * scale;
+  ctx.beginPath();
+  ctx.moveTo(sepX, sepY1);
+  ctx.lineTo(sepX, sepY2);
+  ctx.stroke();
+
+  // 5. Left column: Time and Date
+  const dateObj = photoObj?.systemDate || capturedSystemDate || new Date();
+  const dayName = getIndonesianDayName(dateObj);
+  const rawDateStr = formatIndonesianNumericDate(dateObj);
+  const timeStr = (photoObj?.time || capturedTime || currentTime).split(':').slice(0, 2).join(':');
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${32 * scale}px 'Share Tech Mono', monospace`;
+  ctx.fillText(timeStr, x + 57 * scale, y + headerH + 42 * scale);
+
+  // Thin horizontal separator line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.lineWidth = 1 * scale;
+  ctx.beginPath();
+  ctx.moveTo(x + 15 * scale, y + headerH + 52 * scale);
+  ctx.lineTo(sepX - 15 * scale, y + headerH + 52 * scale);
+  ctx.stroke();
+
+  // Day and Date
+  ctx.font = `600 ${9.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(dayName, x + 57 * scale, y + headerH + 68 * scale);
+  ctx.fillText(rawDateStr, x + 57 * scale, y + headerH + 82 * scale);
+
+  // 6. Right column: Details list (address, daerah, shift, karupam, regu)
+  const detailX = sepX + 12 * scale;
+  let detailY = y + headerH + 15 * scale;
+  const rightColW = wW - (115 + 24) * scale;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+
+  // Address
+  const addrText = gpsData.address || 'Mendapatkan lokasi...';
+  ctx.font = `bold ${9 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  
+  // Icon
+  ctx.fillText('📍', detailX, detailY);
+
+  // Wrap address text
+  const addrWords = addrText.split(' ');
+  let line = '';
+  let lines = [];
+  const maxLineW = rightColW - 14 * scale;
+  ctx.font = `600 ${9 * scale}px 'Exo 2', 'Arial', sans-serif`;
+
+  for (let n = 0; n < addrWords.length; n++) {
+    let testLine = line + addrWords[n] + ' ';
+    let testWidth = ctx.measureText(testLine).width;
+    if (testWidth > maxLineW && n > 0) {
+      lines.push(line.trim());
+      line = addrWords[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+
+  // Draw wrapped lines (max 3 lines to fit beautifully)
+  const maxAddrLines = 3;
+  for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
+    ctx.fillText(lines[j], detailX + 14 * scale, detailY);
+    detailY += 11 * scale;
+  }
+
+  // Daerah
+  ctx.fillText('🌐', detailX, detailY);
+  const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
+  ctx.fillText(cityText, detailX + 14 * scale, detailY);
+  detailY += 12 * scale;
+
+  // SST
+  ctx.fillText('⏱️', detailX, detailY);
+  const sstVal = document.getElementById('watermark-sst')?.value?.trim() || settings.sst || 'PAGI';
+  ctx.fillText(`SST: ${sstVal}`, detailX + 14 * scale, detailY);
+  detailY += 12 * scale;
+
+  // KARUPAM
+  ctx.fillText('👤', detailX, detailY);
+  const karupamVal = document.getElementById('watermark-karupam')?.value?.trim() || settings.karupam || 'WIJOKO';
+  ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 14 * scale, detailY);
+  detailY += 12 * scale;
+
+  // RUPAM
+  ctx.fillText('👥', detailX, detailY);
+  const rupamVal = document.getElementById('watermark-rupam')?.value?.trim() || settings.rupam || 'RUPAM I';
+  ctx.fillText(rupamVal, detailX + 14 * scale, detailY);
+
+  // 7. Draw Marki text watermark in bottom-right corner of photo
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.font = `italic bold ${12 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText('Marki', px + pW - 15 * scale, py + pH - 15 * scale);
+
+  ctx.restore();
+}
+
+function drawChevronPattern(ctx, width, height) {
+  ctx.save();
+  const step = height * 1.5;
+  const chevronW = height * 0.8;
+  
+  for (let x = -step; x < width + step; x += step) {
+    // Yellow chevron
+    ctx.fillStyle = '#ffe600';
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + chevronW, 0);
+    ctx.lineTo(x + chevronW + height/2, height/2);
+    ctx.lineTo(x + chevronW, height);
+    ctx.lineTo(x, height);
+    ctx.lineTo(x + height/2, height/2);
+    ctx.closePath();
+    ctx.fill();
+
+    // White chevron next to it
+    ctx.fillStyle = '#ffffff';
+    const ox = x + step / 2;
+    ctx.beginPath();
+    ctx.moveTo(ox, 0);
+    ctx.lineTo(ox + chevronW, 0);
+    ctx.lineTo(ox + chevronW + height/2, height/2);
+    ctx.lineTo(ox + chevronW, height);
+    ctx.lineTo(ox, height);
+    ctx.lineTo(ox + height/2, height/2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMarkiLogo(ctx, cx, cy, height) {
+  ctx.save();
+  const scale = height / 40;
+  const iconSize = 38 * scale;
+  const totalW = 130 * scale;
+  const startX = cx - totalW / 2;
+  const startY = cy - iconSize / 2;
+  
+  // Blue rounded rect icon background
+  ctx.fillStyle = '#0f4cff';
+  roundRect(ctx, startX, startY, iconSize, iconSize, 8 * scale);
+  ctx.fill();
+  
+  // White camera shape
+  ctx.fillStyle = '#ffffff';
+  const camW = 22 * scale;
+  const camH = 15 * scale;
+  const camX = startX + (iconSize - camW) / 2;
+  const camY = startY + (iconSize - camH) / 2 + 2 * scale;
+  roundRect(ctx, camX, camY, camW, camH, 3 * scale);
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.arc(camX + camW / 2, camY - 1.5 * scale, 3 * scale, 0, Math.PI, true);
+  ctx.fill();
+  
+  ctx.strokeStyle = '#0f4cff';
+  ctx.lineWidth = 2.5 * scale;
+  ctx.beginPath();
+  ctx.arc(camX + camW / 2, camY + camH / 2, 4.5 * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.fillStyle = '#ff3b30';
+  ctx.beginPath();
+  ctx.arc(camX + camW - 4.5 * scale, camY + 4 * scale, 1.5 * scale, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Text "Marki"
+  ctx.font = `bold ${30 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillStyle = '#0f4cff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  
+  const textX = startX + iconSize + 10 * scale;
+  const textY = cy;
+  ctx.fillText('Mark', textX, textY);
+  
+  const markW = ctx.measureText('Mark').width;
+  const iX = textX + markW;
+  ctx.fillRect(iX + 3 * scale, textY - 3 * scale, 4 * scale, 11 * scale);
+  
+  ctx.fillStyle = '#ff4d00';
+  ctx.beginPath();
+  ctx.arc(iX + 5 * scale, textY - 9 * scale, 3 * scale, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.restore();
+}
+
+function onWatermarkFieldChange() {
+  settings.sst = document.getElementById('watermark-sst').value.trim();
+  settings.karupam = document.getElementById('watermark-karupam').value.trim();
+  settings.rupam = document.getElementById('watermark-rupam').value.trim();
+  saveSettingsData();
+
+  if (currentLayout === 1) {
+    if (currentPhoto) renderResultCanvas(currentPhoto);
+  } else {
+    renderMultiGrid(currentLayout);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -367,7 +597,15 @@ function renderMultiGrid(n) {
   grid.innerHTML = '';
 
   while (gridPhotos.length < n) gridPhotos.push(null);
-  if (currentPhoto && !gridPhotos[0]) gridPhotos[0] = currentPhoto;
+  
+  if (currentPhoto && !gridPhotos[0]) {
+    gridPhotos[0] = {
+      dataURL: currentPhoto,
+      time: capturedTime || currentTime,
+      date: currentDate,
+      systemDate: capturedSystemDate || new Date()
+    };
+  }
 
   for (let i = 0; i < n; i++) {
     const slot = document.createElement('div');
@@ -375,7 +613,6 @@ function renderMultiGrid(n) {
     const idx = i;
 
     if (gridPhotos[i]) {
-      // Render stamped mini canvas per slot
       const c = document.createElement('canvas');
       c.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;';
       slot.appendChild(c);
@@ -384,7 +621,12 @@ function renderMultiGrid(n) {
       const del = document.createElement('div');
       del.className = 'del-btn';
       del.textContent = '×';
-      del.onclick = (e) => { e.stopPropagation(); gridPhotos[idx] = null; if (idx === 0) currentPhoto = null; renderMultiGrid(n); };
+      del.onclick = (e) => { 
+        e.stopPropagation(); 
+        gridPhotos[idx] = null; 
+        if (idx === 0) currentPhoto = null; 
+        renderMultiGrid(n); 
+      };
       slot.appendChild(del);
     } else {
       slot.innerHTML = `<div class="add-icon">📷<span>Foto ${i+1}</span></div>`;
@@ -397,7 +639,7 @@ function renderMultiGrid(n) {
 function renderStampedSlot(canvas, photoDataURL, slotIndex) {
   const img = new Image();
   img.onload = () => {
-    const W = 600, H = 450;
+    const W = 800, H = 600;
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
@@ -406,69 +648,10 @@ function renderStampedSlot(canvas, photoDataURL, slotIndex) {
     const dw = img.width*scale, dh = img.height*scale;
     ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);
 
-    // Bottom gradient
-    const gr = ctx.createLinearGradient(0, H*0.52, 0, H);
-    gr.addColorStop(0, 'rgba(0,0,0,0)');
-    gr.addColorStop(1, 'rgba(0,0,0,0.88)');
-    ctx.fillStyle = gr;
-    ctx.fillRect(0, 0, W, H);
-
-    // Accent line
-    const lineGr = ctx.createLinearGradient(0, 0, W, 0);
-    lineGr.addColorStop(0, '#00d4ff');
-    lineGr.addColorStop(0.5, '#00ff9d');
-    lineGr.addColorStop(1, '#00d4ff');
-    ctx.fillStyle = lineGr;
-    ctx.fillRect(0, H - 3, W, 3);
-
-    const titleEl = document.getElementById('quick-title-select');
-    const titleVal = (titleEl?.value && titleEl.value !== '— Pilih Judul —') ? titleEl.value : 'Dokumentasi';
-    const orgName = (settings.orgName || 'FieldCam').toUpperCase();
-    const addr = gpsData.address || 'Lokasi tidak tersedia';
-
-    const p = 10;
-    let y = H - 120;
-
-    // Org + slot number badge
-    ctx.font = `bold 11px Arial`;
-    ctx.fillStyle = '#00d4ff';
-    ctx.fillText(orgName, p, y);
-    // Badge
-    ctx.fillStyle = 'rgba(0,212,255,0.7)';
-    ctx.beginPath(); ctx.arc(W - p - 14, y - 7, 14, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.font = `bold 13px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(slotIndex + 1, W - p - 14, y - 2);
-    ctx.textAlign = 'left';
-    y += 18;
-
-    // Title
-    ctx.font = `bold 15px Arial`;
-    ctx.fillStyle = '#fff';
-    ctx.fillText(truncateText(ctx, titleVal, W - p*2), p, y);
-    y += 18;
-
-    // Datetime
-    ctx.font = `10px 'Courier New'`;
-    ctx.fillStyle = 'rgba(168,200,216,0.9)';
-    ctx.fillText(`${currentDate}  ${currentTime}`, p, y);
-    y += 15;
-
-    // GPS
-    ctx.font = `10px 'Courier New'`;
-    ctx.fillStyle = 'rgba(0,255,157,0.9)';
-    ctx.fillText(truncateText(ctx, addr, W - p*2), p, y);
-    y += 14;
-
-    // Coords
-    if (gpsData.lat) {
-      ctx.font = `9px 'Courier New'`;
-      ctx.fillStyle = 'rgba(136,187,204,0.8)';
-      ctx.fillText(`${gpsData.lat}, ${gpsData.lng}`, p, y);
-    }
+    const photoObj = gridPhotos[slotIndex];
+    drawMarkiWatermark(ctx, 0, 0, W, H, W / 1000, slotIndex, photoObj);
   };
-  img.src = photoDataURL;
+  img.src = typeof photoDataURL === 'object' ? photoDataURL.dataURL : photoDataURL;
 }
 
 function selectGridPhoto(idx, n) {
@@ -507,81 +690,83 @@ async function buildGridImage() {
   const filled = gridPhotos.filter(Boolean);
   if (!filled.length) { showToast('Belum ada foto di grid'); return null; }
 
-  const ket = document.getElementById('keterangan-input')?.value?.trim() || '';
-
   const n = currentLayout;
   const cols = n <= 2 ? 2 : n <= 3 ? 3 : n <= 4 ? 2 : n <= 6 ? 3 : 3;
   const rows = Math.ceil(n / cols);
 
   // Cell size
-  const cellW = 900, cellH = 680;
-  const gap = 8;
-  const pad = 20; // outer padding
+  const cellW = 800, cellH = 600;
+  const gap = 3;
 
-  // Bottom info panel
-  const panelH = ket ? 280 : 220;
+  const headerH = 150;
+  const yellowH = 55;
+  const footerH = 90;
 
-  const totalW = pad*2 + cols*cellW + (cols-1)*gap;
-  const totalH = pad*2 + rows*cellH + (rows-1)*gap + gap + panelH;
+  const totalW = cols * cellW + (cols - 1) * gap;
+  const totalH = headerH + yellowH + rows * cellH + (rows - 1) * gap + footerH;
 
   const canvas = document.createElement('canvas');
   canvas.width = totalW;
   canvas.height = totalH;
   const ctx = canvas.getContext('2d');
 
-  // ── Background ──
-  // Dark gradient bg
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, totalH);
-  bgGrad.addColorStop(0, '#0a0f16');
-  bgGrad.addColorStop(1, '#060a0e');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, totalW, totalH);
+  // 1. Draw Header Background (Deep Blue)
+  ctx.fillStyle = '#0b21a8';
+  ctx.fillRect(0, 0, totalW, headerH);
 
-  // Subtle grid pattern
-  ctx.strokeStyle = 'rgba(0,212,255,0.04)';
-  ctx.lineWidth = 1;
-  for (let gx = 0; gx < totalW; gx += 40) {
-    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, totalH); ctx.stroke();
-  }
-  for (let gy = 0; gy < totalH; gy += 40) {
-    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(totalW, gy); ctx.stroke();
-  }
+  // 2. Draw Chevron Pattern at the top of the header
+  drawChevronPattern(ctx, totalW, 16);
 
-  // Top accent bar
-  const topBarGrad = ctx.createLinearGradient(0, 0, totalW, 0);
-  topBarGrad.addColorStop(0, '#00d4ff');
-  topBarGrad.addColorStop(0.5, '#00ff9d');
-  topBarGrad.addColorStop(1, '#00d4ff');
-  ctx.fillStyle = topBarGrad;
-  ctx.fillRect(0, 0, totalW, 4);
-
-  // ── Draw each photo cell with mini stamp ──
+  // 3. Draw Header Texts
   const titleEl = document.getElementById('quick-title-select');
-  const titleVal = (titleEl?.value && titleEl.value !== '— Pilih Judul —') ? titleEl.value : 'Dokumentasi';
-  const orgName = (settings.orgName || 'FieldCam').toUpperCase();
-  const addr = gpsData.address || 'Lokasi tidak tersedia';
-  const coords = gpsData.lat ? `${gpsData.lat}, ${gpsData.lng}` : 'GPS tidak tersedia';
+  const titleVal = (titleEl?.value && titleEl.value !== '— Pilih Judul —') ? titleEl.value : 'Patroli Keamanan';
+  
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  
+  // Title
+  ctx.font = `bold 38px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(titleVal, totalW / 2, 75);
+  
+  // Subtitle
+  ctx.font = `20px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText('Kumpulan foto kerja lapangan', totalW / 2, 115);
+
+  // 4. Draw Yellow Bar
+  ctx.fillStyle = '#ffe600';
+  ctx.fillRect(0, headerH, totalW, yellowH);
+
+  // Yellow Bar Left Text (Lapas name, lowercased)
+  ctx.fillStyle = '#000000';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold 22px 'Exo 2', 'Arial', sans-serif`;
+  const barLeftText = (settings.orgName || 'Lapas IIA Sragen').toLowerCase();
+  ctx.fillText(barLeftText, 25, headerH + yellowH / 2);
+
+  // Yellow Bar Right Text (Date)
+  ctx.textAlign = 'right';
+  const firstPhotoObj = filled[0];
+  const dateObj = firstPhotoObj?.systemDate || new Date();
+  const dateStr = formatIndonesianDate(dateObj);
+  ctx.fillText(dateStr, totalW - 25, headerH + yellowH / 2);
+
+  // 5. Draw Photo Grid (with Gap)
+  const gridY = headerH + yellowH;
+  const gridH = rows * cellH + (rows - 1) * gap;
+  ctx.fillStyle = '#0b21a8';
+  ctx.fillRect(0, gridY, totalW, gridH);
 
   for (let i = 0; i < n; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const cx = pad + col * (cellW + gap);
-    const cy = pad + row * (cellH + gap);
-
-    // Cell background
-    ctx.fillStyle = '#111820';
-    roundRect(ctx, cx, cy, cellW, cellH, 10);
-    ctx.fill();
+    const cx = col * (cellW + gap);
+    const cy = gridY + row * (cellH + gap);
 
     if (gridPhotos[i]) {
       await new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
-          // Clip to rounded rect
-          ctx.save();
-          roundRect(ctx, cx, cy, cellW, cellH, 10);
-          ctx.clip();
-
           // Draw photo (cover fit)
           const iw = img.width, ih = img.height;
           const scale = Math.max(cellW/iw, cellH/ih);
@@ -590,185 +775,38 @@ async function buildGridImage() {
           const dy = cy + (cellH - dh)/2;
           ctx.drawImage(img, dx, dy, dw, dh);
 
-          // Bottom gradient overlay per cell
-          const cellGrad = ctx.createLinearGradient(0, cy + cellH*0.55, 0, cy + cellH);
-          cellGrad.addColorStop(0, 'rgba(0,0,0,0)');
-          cellGrad.addColorStop(1, 'rgba(0,0,0,0.82)');
-          ctx.fillStyle = cellGrad;
-          ctx.fillRect(cx, cy, cellW, cellH);
-
-          // Accent line at bottom of cell
-          ctx.fillStyle = '#00d4ff';
-          ctx.fillRect(cx, cy + cellH - 3, cellW, 3);
-
-          ctx.restore();
-
-          // Mini stamp: photo number badge
-          const bR = 22;
-          ctx.fillStyle = 'rgba(0,212,255,0.85)';
-          ctx.beginPath();
-          ctx.arc(cx + 16 + bR, cy + 16 + bR, bR, 0, Math.PI*2);
-          ctx.fill();
-          ctx.fillStyle = '#000';
-          ctx.font = `bold ${18}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.fillText(i+1, cx + 16 + bR, cy + 16 + bR + 6);
-          ctx.textAlign = 'left';
-
-          // Mini timestamp bottom-left of cell
-          const ts = `${currentDate}  ${currentTime}`;
-          ctx.font = `${11}px 'Courier New'`;
-          ctx.fillStyle = 'rgba(168,200,216,0.9)';
-          ctx.fillText(ts, cx + 10, cy + cellH - 32);
-
-          // Mini GPS bottom-left
-          ctx.font = `${11}px 'Courier New'`;
-          ctx.fillStyle = 'rgba(0,255,157,0.9)';
-          const shortAddr = truncateCtxText(ctx, addr, cellW - 20);
-          ctx.fillText(shortAddr, cx + 10, cy + cellH - 16);
+          // Draw Marki Watermark for this cell
+          const photoObj = gridPhotos[i];
+          drawMarkiWatermark(ctx, cx, cy, cellW, cellH, cellW / 1000, i, photoObj);
 
           resolve();
         };
-        img.src = gridPhotos[i];
+        img.src = typeof gridPhotos[i] === 'object' ? gridPhotos[i].dataURL : gridPhotos[i];
       });
     } else {
-      // Empty slot
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      roundRect(ctx, cx, cy, cellW, cellH, 10);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.font = `28px Arial`;
+      // Empty slot (gray placeholder)
+      ctx.fillStyle = 'rgba(13, 20, 35, 0.95)';
+      ctx.fillRect(cx, cy, cellW, cellH);
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.font = `48px 'Exo 2'`;
       ctx.textAlign = 'center';
-      ctx.fillText('📷', cx + cellW/2, cy + cellH/2 + 10);
-      ctx.font = `14px Arial`;
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillText(`Foto ${i+1}`, cx + cellW/2, cy + cellH/2 + 36);
-      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📷', cx + cellW/2, cy + cellH/2 - 20);
+      
+      ctx.font = `20px 'Exo 2'`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillText(`Foto ${i+1}`, cx + cellW/2, cy + cellH/2 + 25);
     }
-
-    // Cell border
-    ctx.strokeStyle = 'rgba(0,212,255,0.2)';
-    ctx.lineWidth = 1;
-    roundRect(ctx, cx, cy, cellW, cellH, 10);
-    ctx.stroke();
   }
 
-  // ── Bottom Info Panel ──
-  const panelY = pad + rows*cellH + (rows-1)*gap + gap;
-
-  // Panel background
-  const panelGrad = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
-  panelGrad.addColorStop(0, 'rgba(13,18,25,0.98)');
-  panelGrad.addColorStop(1, 'rgba(8,12,16,0.98)');
-  ctx.fillStyle = panelGrad;
-  roundRect(ctx, pad, panelY, totalW - pad*2, panelH, 12);
-  ctx.fill();
-
-  // Panel border
-  ctx.strokeStyle = 'rgba(0,212,255,0.25)';
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, pad, panelY, totalW - pad*2, panelH, 12);
-  ctx.stroke();
-
-  // Panel top accent
-  ctx.fillStyle = '#00d4ff';
-  ctx.fillRect(pad + 12, panelY, 60, 3);
-
-  const px = pad + 24;
-  let py = panelY + 28;
-  const pW = totalW - pad*2 - 48;
-  const col2X = px + pW * 0.5 + 20;
-
-  // Org name
-  ctx.font = `bold 13px Arial`;
-  ctx.fillStyle = '#00d4ff';
-  ctx.fillText(orgName, px, py);
-
-  // Photo count badge right side
-  const countTxt = `${filled.length} FOTO`;
-  ctx.font = `bold 11px Arial`;
-  const cw = ctx.measureText(countTxt).width + 20;
-  ctx.fillStyle = 'rgba(0,212,255,0.15)';
-  roundRect(ctx, totalW - pad - cw - 12, panelY + 14, cw, 22, 5);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,212,255,0.4)';
-  ctx.lineWidth = 1;
-  roundRect(ctx, totalW - pad - cw - 12, panelY + 14, cw, 22, 5);
-  ctx.stroke();
-  ctx.fillStyle = '#00d4ff';
-  ctx.textAlign = 'center';
-  ctx.fillText(countTxt, totalW - pad - cw/2 - 12, panelY + 29);
-  ctx.textAlign = 'left';
-
-  py += 28;
-
-  // Title big
-  ctx.font = `bold 26px Arial`;
+  // 6. Draw White Footer
+  const footerY = gridY + gridH;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(truncateCtxText(ctx, titleVal, pW), px, py);
-  py += 34;
+  ctx.fillRect(0, footerY, totalW, footerH);
 
-  // Divider
-  ctx.fillStyle = 'rgba(0,212,255,0.15)';
-  ctx.fillRect(px, py, pW, 1);
-  py += 14;
-
-  // Left col: datetime
-  ctx.font = `bold 11px Arial`;
-  ctx.fillStyle = 'rgba(100,150,175,0.8)';
-  ctx.fillText('📅 WAKTU', px, py);
-  ctx.font = `13px 'Courier New'`;
-  ctx.fillStyle = '#c8dde8';
-  ctx.fillText(currentDate, px, py + 16);
-  ctx.font = `bold 15px 'Courier New'`;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(currentTime, px, py + 34);
-
-  // Right col: GPS coords
-  ctx.font = `bold 11px Arial`;
-  ctx.fillStyle = 'rgba(100,150,175,0.8)';
-  ctx.fillText('🌐 KOORDINAT', col2X, py);
-  ctx.font = `12px 'Courier New'`;
-  ctx.fillStyle = '#00ff9d';
-  if (gpsData.lat) {
-    ctx.fillText(`LAT  ${gpsData.lat}`, col2X, py + 16);
-    ctx.fillText(`LNG  ${gpsData.lng}`, col2X, py + 32);
-  } else {
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText('GPS tidak tersedia', col2X, py + 16);
-  }
-
-  py += 50;
-
-  // Divider
-  ctx.fillStyle = 'rgba(0,212,255,0.15)';
-  ctx.fillRect(px, py, pW, 1);
-  py += 14;
-
-  // Address full width
-  ctx.font = `bold 11px Arial`;
-  ctx.fillStyle = 'rgba(100,150,175,0.8)';
-  ctx.fillText('📍 LOKASI', px, py);
-  py += 16;
-  ctx.font = `12px Arial`;
-  ctx.fillStyle = '#00ff9d';
-  ctx.fillText(truncateCtxText(ctx, addr, pW), px, py);
-  py += 20;
-
-  // Keterangan if exists
-  if (ket) {
-    ctx.font = `bold 11px Arial`;
-    ctx.fillStyle = 'rgba(100,150,175,0.8)';
-    ctx.fillText('📝 KETERANGAN', px, py);
-    py += 16;
-    ctx.font = `12px Arial`;
-    ctx.fillStyle = '#e8f4f8';
-    ctx.fillText(truncateCtxText(ctx, ket, pW), px, py);
-  }
-
-  // Bottom accent bar
-  ctx.fillStyle = topBarGrad;
-  ctx.fillRect(0, totalH - 4, totalW, 4);
+  // Draw Marki logo centered in footer
+  drawMarkiLogo(ctx, totalW / 2, footerY + footerH / 2, 36);
 
   return canvas.toDataURL('image/jpeg', 0.92);
 }
@@ -1092,6 +1130,9 @@ function removeTemplate(i) {
 
 function saveSettings() {
   settings.orgName = document.getElementById('org-name').value.trim();
+  if (document.getElementById('watermark-sst')) settings.sst = document.getElementById('watermark-sst').value.trim();
+  if (document.getElementById('watermark-karupam')) settings.karupam = document.getElementById('watermark-karupam').value.trim();
+  if (document.getElementById('watermark-rupam')) settings.rupam = document.getElementById('watermark-rupam').value.trim();
   saveSettingsData();
   populateQuickTitles();
   showToast('Pengaturan disimpan!');
@@ -1140,5 +1181,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('quick-title-select').addEventListener('change', function() {
     const title = this.value || 'FieldCam';
     document.getElementById('hud-title').textContent = title;
+    onWatermarkFieldChange();
   });
 });

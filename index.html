@@ -131,10 +131,29 @@
       </div>
     </div>
 
+    <!-- Detail Watermark Marki -->
+    <div class="keterangan-area" style="margin-bottom:14px;">
+      <label>Detail Watermark (Gaya Marki)</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 12px 10px;">
+        <div>
+          <span style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px; font-weight:600; letter-spacing:0.5px;">SHIFT / SST</span>
+          <input type="text" id="watermark-sst" value="PAGI" oninput="onWatermarkFieldChange()" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Exo 2', sans-serif; font-size:12px; padding:6px 8px; outline:none;">
+        </div>
+        <div>
+          <span style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px; font-weight:600; letter-spacing:0.5px;">RUPAM / REGU</span>
+          <input type="text" id="watermark-rupam" value="RUPAM I" oninput="onWatermarkFieldChange()" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Exo 2', sans-serif; font-size:12px; padding:6px 8px; outline:none;">
+        </div>
+      </div>
+      <div style="padding:0 12px 10px;">
+        <span style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px; font-weight:600; letter-spacing:0.5px;">KARUPAM / PENGAWAS</span>
+        <input type="text" id="watermark-karupam" value="WIJOKO" oninput="onWatermarkFieldChange()" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Exo 2', sans-serif; font-size:12px; padding:6px 8px; outline:none;">
+      </div>
+    </div>
+
     <!-- Keterangan -->
-    <div class="keterangan-area">
+    <div class="keterangan-area" style="margin-bottom:14px;">
       <label>Keterangan Pekerjaan</label>
-      <textarea id="keterangan-input" placeholder="Contoh: Pemasangan kabel fiber optik selesai 100%. Lokasi RK-07 sudah aktif." rows="3"></textarea>
+      <textarea id="keterangan-input" placeholder="Contoh: Pemasangan kabel fiber optik selesai 100%. Lokasi RK-07 sudah aktif." rows="3" oninput="onWatermarkFieldChange()"></textarea>
     </div>
 
     <!-- Template pesan -->
