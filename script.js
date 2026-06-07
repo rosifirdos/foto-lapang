@@ -138,25 +138,64 @@ function flipCamera() {
 // ═══════════════════════════════════════════════════
 //  GPS
 // ═══════════════════════════════════════════════════
+let _lastGeocodedCoords = null;  // avoid re-geocoding same position
+let _geocodeRetryTimer = null;
+let _lastGoodAddress = '';       // cache last successful address
+let _lastGoodCity = '';          // cache last successful city
+
 function initGPS() {
   if (!navigator.geolocation) {
     gpsData.address = 'GPS tidak didukung';
     return;
   }
-  navigator.geolocation.watchPosition(async (pos) => {
-    const { latitude: lat, longitude: lng } = pos.coords;
-    gpsData.lat = lat.toFixed(6);
-    gpsData.lng = lng.toFixed(6);
-    gpsData.raw = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    updateGPSUI();
-    await reverseGeocode(lat, lng);
-  }, (err) => {
+
+  const gpsOpts = { enableHighAccuracy: true, timeout: 8000, maximumAge: 2000 };
+
+  // 1. Get a fast initial position first
+  navigator.geolocation.getCurrentPosition(
+    (pos) => _handleGPSPosition(pos),
+    (err) => {
+      // Try again with lower accuracy for speed
+      navigator.geolocation.getCurrentPosition(
+        (pos) => _handleGPSPosition(pos),
+        () => _handleGPSError(),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+      );
+    },
+    gpsOpts
+  );
+
+  // 2. Then continuously watch for better positions
+  navigator.geolocation.watchPosition(
+    (pos) => _handleGPSPosition(pos),
+    (err) => _handleGPSError(),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+  );
+}
+
+function _handleGPSPosition(pos) {
+  const { latitude: lat, longitude: lng } = pos.coords;
+  gpsData.lat = lat.toFixed(6);
+  gpsData.lng = lng.toFixed(6);
+  gpsData.raw = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  updateGPSUI();
+
+  // Only re-geocode if position changed significantly (>~50m)
+  const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (_lastGeocodedCoords !== coordKey) {
+    _lastGeocodedCoords = coordKey;
+    reverseGeocodeWithRetry(lat, lng, 0);
+  }
+}
+
+function _handleGPSError() {
+  if (!gpsData.lat) {
     gpsData.address = 'Lokasi tidak tersedia';
-    gpsData.city = 'Sragen';
+    gpsData.city = _lastGoodCity || 'Sragen';
     document.getElementById('gps-pill').className = 'gps-pill searching';
     document.getElementById('gps-pill-text').textContent = 'GPS Off';
     document.getElementById('hud-gps').textContent = 'Lokasi tidak tersedia';
-  }, { enableHighAccuracy: true, maximumAge: 10000 });
+  }
 }
 
 function updateGPSUI() {
@@ -176,55 +215,159 @@ function updateGPSUI() {
   onWatermarkFieldChange();
 }
 
+// Retry wrapper - tries up to 3 times with increasing delay
+async function reverseGeocodeWithRetry(lat, lng, attempt) {
+  const success = await reverseGeocode(lat, lng);
+  if (!success && attempt < 3) {
+    const delay = (attempt + 1) * 2000; // 2s, 4s, 6s
+    clearTimeout(_geocodeRetryTimer);
+    _geocodeRetryTimer = setTimeout(() => {
+      reverseGeocodeWithRetry(lat, lng, attempt + 1);
+    }, delay);
+  }
+}
+
 async function reverseGeocode(lat, lng) {
+  // === Provider 1: Nominatim (OpenStreetMap) ===
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id`);
-    const data = await res.json();
-    
-    let foundCity = '';
-    if (data && data.display_name) {
-      const parts = data.display_name.split(',');
-      gpsData.address = parts.slice(0, 4).join(',').trim();
-      
-      // Look for city/kabupaten in display_name parts
-      for (let part of parts) {
-        part = part.trim();
-        if (/Kabupaten|Kota/i.test(part)) {
-          let c = part.replace(/Kabupaten\s+/i, '')
-                      .replace(/Kota\s+/i, '')
-                      .trim();
-          if (c) {
-            foundCity = c;
-            break;
-          }
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id&addressdetails=1&zoom=18`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (data.display_name || data.address)) {
+        const result = _parseNominatimResult(data);
+        if (result.address && result.address.length > 5) {
+          gpsData.address = result.address;
+          gpsData.city = result.city;
+          _lastGoodAddress = result.address;
+          _lastGoodCity = result.city;
+          updateGPSUI();
+          return true;
         }
       }
     }
+  } catch(e) { /* fall through to next provider */ }
+
+  // === Provider 2: BigDataCloud (free, no key needed) ===
+  try {
+    const res2 = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2) {
+        const result2 = _parseBigDataCloudResult(data2);
+        if (result2.address && result2.address.length > 5) {
+          gpsData.address = result2.address;
+          gpsData.city = result2.city;
+          _lastGoodAddress = result2.address;
+          _lastGoodCity = result2.city;
+          updateGPSUI();
+          return true;
+        }
+      }
+    }
+  } catch(e) { /* fall through */ }
+
+  // === Fallback: use cached address or build from coordinates ===
+  if (_lastGoodAddress) {
+    gpsData.address = _lastGoodAddress;
+    gpsData.city = _lastGoodCity || 'Sragen';
+  } else {
+    gpsData.address = `Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`;
+    gpsData.city = 'Sragen';
+  }
+  updateGPSUI();
+  return false;
+}
+
+function _parseNominatimResult(data) {
+  let address = '';
+  let city = '';
+
+  // Build detailed address from address components
+  if (data.address) {
+    const a = data.address;
+    const parts = [];
+    // Build from specific to general
+    if (a.road || a.pedestrian || a.path) parts.push(a.road || a.pedestrian || a.path);
+    if (a.house_number) parts[parts.length - 1] = (parts[parts.length - 1] || '') + ' No.' + a.house_number;
+    if (a.neighbourhood || a.hamlet) parts.push(a.neighbourhood || a.hamlet);
+    if (a.village || a.suburb || a.city_district) parts.push(a.village || a.suburb || a.city_district);
+    if (a.municipality || a.county) parts.push((a.municipality || a.county).replace(/Kabupaten\s+/i, 'Kab. '));
     
-    // Backup check in data.address if display_name loop did not find it
-    if (!foundCity && data && data.address) {
-      let city = data.address.city || 
-                 data.address.town || 
-                 data.address.village || 
-                 data.address.municipality ||
-                 data.address.suburb ||
-                 data.address.city_district ||
-                 data.address.county || 
-                 'Sragen';
-      foundCity = city.replace(/Kabupaten\s+/i, '')
-                      .replace(/Kota\s+/i, '')
-                      .replace(/\sRegency/i, '')
-                      .replace(/Kecamatan\s+/i, '')
-                      .trim();
+    address = parts.join(', ');
+    
+    // Find city
+    city = a.city || a.town || '';
+    if (!city) {
+      // Try county/municipality and clean it
+      let raw = a.municipality || a.county || a.village || a.suburb || '';
+      city = raw.replace(/Kabupaten\s+/i, '')
+                .replace(/Kota\s+/i, '')
+                .replace(/\sRegency/i, '')
+                .replace(/Kecamatan\s+/i, '')
+                .trim();
+    }
+  }
+  
+  // Fallback to display_name if structured address failed
+  if (!address && data.display_name) {
+    const parts = data.display_name.split(',');
+    address = parts.slice(0, 4).join(',').trim();
+    
+    // Try to find city from display_name
+    if (!city) {
+      for (let part of parts) {
+        part = part.trim();
+        if (/Kabupaten|Kota/i.test(part)) {
+          city = part.replace(/Kabupaten\s+/i, '')
+                     .replace(/Kota\s+/i, '')
+                     .trim();
+          if (city) break;
+        }
+      }
+    }
+  }
+
+  return { address: address || '', city: city || 'Sragen' };
+}
+
+function _parseBigDataCloudResult(data) {
+  let address = '';
+  let city = '';
+  
+  // Build address from locality info
+  const parts = [];
+  if (data.locality) parts.push(data.locality);
+  if (data.city && data.city !== data.locality) parts.push(data.city);
+  if (data.principalSubdivision) parts.push(data.principalSubdivision);
+  
+  // Also try localityInfo for more detail
+  if (data.localityInfo && data.localityInfo.administrative) {
+    const admins = data.localityInfo.administrative;
+    // Find village/kelurahan level (usually order >= 7)
+    const village = admins.find(a => a.order >= 7 && a.name);
+    const kecamatan = admins.find(a => a.order === 6 && a.name);
+    const kabupaten = admins.find(a => a.order === 5 && a.name);
+    
+    if (parts.length === 0) {
+      if (village) parts.push(village.name);
+      if (kecamatan) parts.push(kecamatan.name);
+      if (kabupaten) parts.push(kabupaten.name.replace(/Kabupaten\s+/i, 'Kab. '));
     }
     
-    gpsData.city = foundCity || 'Sragen';
-    updateGPSUI();
-  } catch(e) {
-    gpsData.address = `${gpsData.lat}, ${gpsData.lng}`;
-    gpsData.city = 'Sragen';
-    updateGPSUI();
+    // City from kabupaten/kota level
+    if (!city && kabupaten) {
+      city = kabupaten.name
+        .replace(/Kabupaten\s+/i, '')
+        .replace(/Kota\s+/i, '')
+        .replace(/\sRegency/i, '')
+        .trim();
+    }
   }
+  
+  address = parts.join(', ');
+  if (!city) city = data.city || data.locality || '';
+  
+  return { address: address || '', city: city || 'Sragen' };
 }
 
 // ═══════════════════════════════════════════════════
