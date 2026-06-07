@@ -346,9 +346,9 @@ function formatIndonesianNumericDate(dateObj) {
 function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
 
-  // Watermark box dimensions (slightly expanded to fit larger timestamp)
-  const wW = 455 * scale;
-  const wH = 195 * scale;
+  // Watermark box dimensions (expanded to fit much larger timestamp)
+  const wW = 520 * scale;
+  const wH = 220 * scale;
   const margin = 15 * scale;
 
   const x = px + margin;
@@ -359,7 +359,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillRect(x, y, wW, wH);
 
   // 2. Draw solid blue header bar
-  const headerH = 34 * scale;
+  const headerH = 36 * scale;
   ctx.fillStyle = 'rgb(13, 40, 166)';
   ctx.fillRect(x, y, wW, headerH);
 
@@ -379,8 +379,8 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
     ctx.fillText(orgName, x + 12 * scale, y + headerH / 2);
   }
 
-  // 4. Draw white vertical line separator (shifted right)
-  const sepX = x + 130 * scale;
+  // 4. Draw white vertical line separator (shifted right to 160)
+  const sepX = x + 160 * scale;
   const sepY1 = y + headerH + 10 * scale;
   const sepY2 = y + wH - 10 * scale;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -390,7 +390,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.lineTo(sepX, sepY2);
   ctx.stroke();
 
-  // 5. Left column: Time and Date (Enlarged and positioned clearly)
+  // 5. Left column: Time and Date (Enlarged significantly)
   const dateObj = photoObj?.systemDate || capturedSystemDate || new Date();
   const dayName = getIndonesianDayName(dateObj);
   const rawDateStr = formatIndonesianNumericDate(dateObj);
@@ -400,34 +400,35 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
   
-  // Large Time (scaled up from 32px to 38px)
-  ctx.font = `bold ${38 * scale}px 'Share Tech Mono', monospace`;
-  ctx.fillText(timeStr, x + 65 * scale, y + headerH + 46 * scale);
+  // Large Time (increased from 38px to 46px)
+  ctx.font = `bold ${46 * scale}px 'Share Tech Mono', monospace`;
+  ctx.fillText(timeStr, x + 80 * scale, y + headerH + 52 * scale);
 
   // Thin horizontal separator line
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.lineWidth = 1 * scale;
   ctx.beginPath();
-  ctx.moveTo(x + 15 * scale, y + headerH + 58 * scale);
-  ctx.lineTo(sepX - 15 * scale, y + headerH + 58 * scale);
+  ctx.moveTo(x + 15 * scale, y + headerH + 68 * scale);
+  ctx.lineTo(sepX - 15 * scale, y + headerH + 68 * scale);
   ctx.stroke();
 
-  // Day and Date (scaled up from 9.5px to 12px)
-  ctx.font = `bold ${12 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(dayName, x + 65 * scale, y + headerH + 74 * scale);
-  ctx.fillText(rawDateStr, x + 65 * scale, y + headerH + 90 * scale);
+  // Day and Date (increased from 12px to 15px)
+  ctx.font = `bold ${15 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(dayName, x + 80 * scale, y + headerH + 88 * scale);
+  ctx.font = `bold ${14 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(rawDateStr, x + 80 * scale, y + headerH + 108 * scale);
 
   // 6. Right column: Details list (scaled up details text)
   const detailX = sepX + 12 * scale;
   let detailY = y + headerH + 15 * scale;
-  const rightColW = wW - (130 + 24) * scale;
+  const rightColW = wW - (160 + 24) * scale;
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
-  ctx.font = `bold ${10.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${12.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
   // Icon
@@ -437,7 +438,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   const addrWords = addrText.split(' ');
   let line = '';
   let lines = [];
-  const maxLineW = rightColW - 14 * scale;
+  const maxLineW = rightColW - 16 * scale;
 
   for (let n = 0; n < addrWords.length; n++) {
     let testLine = line + addrWords[n] + ' ';
@@ -454,67 +455,33 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   // Draw wrapped lines (max 3 lines to fit beautifully)
   const maxAddrLines = 3;
   for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
-    ctx.fillText(lines[j], detailX + 14 * scale, detailY);
-    detailY += 13 * scale;
+    ctx.fillText(lines[j], detailX + 16 * scale, detailY);
+    detailY += 15 * scale;
   }
 
   // Daerah
   ctx.fillText('🌐', detailX, detailY);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
-  ctx.fillText(cityText, detailX + 14 * scale, detailY);
-  detailY += 14 * scale;
+  ctx.fillText(cityText, detailX + 16 * scale, detailY);
+  detailY += 16 * scale;
 
   // SST
   ctx.fillText('⏱️', detailX, detailY);
   const sstVal = document.getElementById('watermark-sst')?.value?.trim() || settings.sst || 'PAGI';
-  ctx.fillText(`SST: ${sstVal}`, detailX + 14 * scale, detailY);
-  detailY += 14 * scale;
+  ctx.fillText(`SST: ${sstVal}`, detailX + 16 * scale, detailY);
+  detailY += 16 * scale;
 
   // KARUPAM
   ctx.fillText('👤', detailX, detailY);
   const karupamVal = document.getElementById('watermark-karupam')?.value?.trim() || settings.karupam || 'WIJOKO';
-  ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 14 * scale, detailY);
-  detailY += 14 * scale;
+  ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 16 * scale, detailY);
+  detailY += 16 * scale;
 
   // RUPAM
   ctx.fillText('👥', detailX, detailY);
   const rupamVal = document.getElementById('watermark-rupam')?.value?.trim() || settings.rupam || 'RUPAM I';
-  ctx.fillText(rupamVal, detailX + 14 * scale, detailY);
+  ctx.fillText(rupamVal, detailX + 16 * scale, detailY);
 
-  ctx.restore();
-}
-
-function drawChevronPattern(ctx, width, height) {
-  ctx.save();
-  const step = height * 1.5;
-  const chevronW = height * 0.8;
-  
-  for (let x = -step; x < width + step; x += step) {
-    // Yellow chevron
-    ctx.fillStyle = '#ffe600';
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + chevronW, 0);
-    ctx.lineTo(x + chevronW + height/2, height/2);
-    ctx.lineTo(x + chevronW, height);
-    ctx.lineTo(x, height);
-    ctx.lineTo(x + height/2, height/2);
-    ctx.closePath();
-    ctx.fill();
-
-    // White chevron next to it
-    ctx.fillStyle = '#ffffff';
-    const ox = x + step / 2;
-    ctx.beginPath();
-    ctx.moveTo(ox, 0);
-    ctx.lineTo(ox + chevronW, 0);
-    ctx.lineTo(ox + chevronW + height/2, height/2);
-    ctx.lineTo(ox + chevronW, height);
-    ctx.lineTo(ox, height);
-    ctx.lineTo(ox + height/2, height/2);
-    ctx.closePath();
-    ctx.fill();
-  }
   ctx.restore();
 }
 
@@ -664,9 +631,9 @@ async function buildGridImage() {
   const cellW = 800, cellH = 600;
   const gap = 3;
 
-  const headerH = 150;
+  const headerH = 185;
   const yellowH = 55;
-  const footerH = 100;
+  const footerH = 50;
 
   const totalW = cols * cellW + (cols - 1) * gap;
   const totalH = headerH + yellowH + rows * cellH + (rows - 1) * gap + footerH;
@@ -680,10 +647,7 @@ async function buildGridImage() {
   ctx.fillStyle = '#0b21a8';
   ctx.fillRect(0, 0, totalW, headerH);
 
-  // 2. Draw Chevron Pattern at the top of the header
-  drawChevronPattern(ctx, totalW, 16);
-
-  // 3. Draw Header Texts
+  // 2. Draw Header Texts (Title & Description)
   const titleEl = document.getElementById('quick-title-select');
   const titleVal = (titleEl?.value && titleEl.value !== '— Pilih Judul —') ? titleEl.value : 'Patroli Keamanan';
   
@@ -691,12 +655,36 @@ async function buildGridImage() {
   ctx.textAlign = 'center';
   
   // Title
-  ctx.font = `bold 38px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(titleVal, totalW / 2, 75);
+  ctx.font = `bold 42px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(titleVal, totalW / 2, 65);
   
-  // Subtitle
+  // Description (Keterangan) - moved to the top header
+  const ketText = document.getElementById('keterangan-input')?.value?.trim() || 'Kumpulan foto kerja lapangan';
   ctx.font = `20px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText('Kumpulan foto kerja lapangan', totalW / 2, 115);
+  
+  const headerWords = ketText.split(' ');
+  let line = '';
+  let lines = [];
+  const maxHeaderLineW = totalW - 100;
+  
+  for (let n = 0; n < headerWords.length; n++) {
+    let testLine = line + headerWords[n] + ' ';
+    let testWidth = ctx.measureText(testLine).width;
+    if (testWidth > maxHeaderLineW && n > 0) {
+      lines.push(line.trim());
+      line = headerWords[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+  
+  // Draw wrapped lines centered under the title
+  let textY = 110;
+  for (let j = 0; j < Math.min(lines.length, 3); j++) {
+    ctx.fillText(lines[j], totalW / 2, textY);
+    textY += 26;
+  }
 
   // 4. Draw Yellow Bar
   ctx.fillStyle = '#ffe600';
@@ -772,47 +760,10 @@ async function buildGridImage() {
     }
   }
 
-  // 6. Draw White Footer
+  // 6. Draw White Footer (simplified plain white bar)
   const footerY = gridY + gridH;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, footerY, totalW, footerH);
-
-  // Get description (keterangan)
-  const ketText = document.getElementById('keterangan-input')?.value?.trim() || 'DOKUMENTASI LAPANGAN';
-  
-  ctx.save();
-  ctx.fillStyle = '#1e2d3d'; // elegant dark gray/blue text
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `bold 22px 'Exo 2', 'Arial', sans-serif`;
-  
-  // Wrap description text inside the footer
-  const footerWords = ketText.split(' ');
-  let line = '';
-  let lines = [];
-  const maxFooterLineW = totalW - 80;
-  
-  for (let n = 0; n < footerWords.length; n++) {
-    let testLine = line + footerWords[n] + ' ';
-    let testWidth = ctx.measureText(testLine).width;
-    if (testWidth > maxFooterLineW && n > 0) {
-      lines.push(line.trim());
-      line = footerWords[n] + ' ';
-    } else {
-      line = testLine;
-    }
-  }
-  lines.push(line.trim());
-  
-  // Draw wrapped lines centered vertically in the footer
-  const lineCount = lines.length;
-  const footerLineH = 28;
-  const startLineY = footerY + footerH / 2 - ((lineCount - 1) * footerLineH) / 2;
-  
-  for (let j = 0; j < lineCount; j++) {
-    ctx.fillText(lines[j], totalW / 2, startLineY + j * footerLineH);
-  }
-  ctx.restore();
 
   return canvas.toDataURL('image/jpeg', 0.92);
 }
