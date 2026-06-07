@@ -282,51 +282,37 @@ function _parseNominatimResult(data) {
   let address = '';
   let city = '';
 
-  // Build detailed address from address components
-  if (data.address) {
-    const a = data.address;
-    const parts = [];
-    // Build from specific to general
-    if (a.road || a.pedestrian || a.path) parts.push(a.road || a.pedestrian || a.path);
-    if (a.house_number) parts[parts.length - 1] = (parts[parts.length - 1] || '') + ' No.' + a.house_number;
-    if (a.neighbourhood || a.hamlet) parts.push(a.neighbourhood || a.hamlet);
-    if (a.village || a.suburb || a.city_district) parts.push(a.village || a.suburb || a.city_district);
-    if (a.municipality || a.county) parts.push((a.municipality || a.county).replace(/Kabupaten\s+/i, 'Kab. '));
+  if (data.display_name) {
+    const parts = data.display_name.split(',').map(p => p.trim());
+    // Filter out postcodes, country (Indonesia), and empty entries
+    const cleanParts = parts.filter(p => {
+      if (/^\d{5}$/.test(p)) return false; // postcodes
+      if (/Indonesia/i.test(p)) return false; // country
+      if (!p) return false;
+      return true;
+    });
     
-    address = parts.join(', ');
-    
+    // Join the clean parts to get a highly detailed address
+    address = cleanParts.join(', ');
+
     // Find city
-    city = a.city || a.town || '';
-    if (!city) {
-      // Try county/municipality and clean it
-      let raw = a.municipality || a.county || a.village || a.suburb || '';
-      city = raw.replace(/Kabupaten\s+/i, '')
-                .replace(/Kota\s+/i, '')
-                .replace(/\sRegency/i, '')
-                .replace(/Kecamatan\s+/i, '')
-                .trim();
+    if (data.address) {
+      const a = data.address;
+      city = a.city || a.town || a.city_district || '';
     }
-  }
-  
-  // Fallback to display_name if structured address failed
-  if (!address && data.display_name) {
-    const parts = data.display_name.split(',');
-    address = parts.slice(0, 4).join(',').trim();
-    
-    // Try to find city from display_name
     if (!city) {
-      for (let part of parts) {
-        part = part.trim();
-        if (/Kabupaten|Kota/i.test(part)) {
+      for (let part of cleanParts) {
+        if (/Kabupaten|Kota|Regency/i.test(part)) {
           city = part.replace(/Kabupaten\s+/i, '')
                      .replace(/Kota\s+/i, '')
+                     .replace(/\sRegency/i, '')
                      .trim();
           if (city) break;
         }
       }
     }
   }
-
+  
   return { address: address || '', city: city || 'Sragen' };
 }
 
@@ -334,29 +320,24 @@ function _parseBigDataCloudResult(data) {
   let address = '';
   let city = '';
   
-  // Build address from locality info
-  const parts = [];
-  if (data.locality) parts.push(data.locality);
-  if (data.city && data.city !== data.locality) parts.push(data.city);
-  if (data.principalSubdivision) parts.push(data.principalSubdivision);
-  
-  // Also try localityInfo for more detail
   if (data.localityInfo && data.localityInfo.administrative) {
-    const admins = data.localityInfo.administrative;
-    // Find village/kelurahan level (usually order >= 7)
-    const village = admins.find(a => a.order >= 7 && a.name);
-    const kecamatan = admins.find(a => a.order === 6 && a.name);
-    const kabupaten = admins.find(a => a.order === 5 && a.name);
+    // Sort administrative divisions by order descending (most specific first)
+    const admins = [...data.localityInfo.administrative]
+      .filter(a => a.name && !/Indonesia/i.test(a.name))
+      .sort((a, b) => b.order - a.order);
+      
+    const parts = admins.map(a => {
+      return a.name.replace(/Kabupaten\s+/i, 'Kab. ');
+    });
     
-    if (parts.length === 0) {
-      if (village) parts.push(village.name);
-      if (kecamatan) parts.push(kecamatan.name);
-      if (kabupaten) parts.push(kabupaten.name.replace(/Kabupaten\s+/i, 'Kab. '));
-    }
+    address = parts.join(', ');
     
-    // City from kabupaten/kota level
-    if (!city && kabupaten) {
-      city = kabupaten.name
+    // Find city/kabupaten
+    const kab = data.localityInfo.administrative.find(a => 
+      a.name && /Kabupaten|Kota|Regency/i.test(a.name)
+    );
+    if (kab) {
+      city = kab.name
         .replace(/Kabupaten\s+/i, '')
         .replace(/Kota\s+/i, '')
         .replace(/\sRegency/i, '')
@@ -364,7 +345,14 @@ function _parseBigDataCloudResult(data) {
     }
   }
   
-  address = parts.join(', ');
+  if (!address) {
+    const parts = [];
+    if (data.locality) parts.push(data.locality);
+    if (data.city && data.city !== data.locality) parts.push(data.city);
+    if (data.principalSubdivision) parts.push(data.principalSubdivision);
+    address = parts.join(', ');
+  }
+  
   if (!city) city = data.city || data.locality || '';
   
   return { address: address || '', city: city || 'Sragen' };
@@ -595,8 +583,8 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   }
   lines.push(line.trim());
 
-  // Draw wrapped lines (max 3 lines to fit beautifully)
-  const maxAddrLines = 3;
+  // Draw wrapped lines (max 4 lines to fit beautifully)
+  const maxAddrLines = 4;
   for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
     ctx.fillText(lines[j], detailX + 16 * scale, detailY);
     detailY += 15 * scale;
