@@ -161,20 +161,48 @@ function initGPS() {
 
 function updateGPSUI() {
   const pill = document.getElementById('gps-pill');
-  pill.className = 'gps-pill';
-  document.getElementById('gps-pill-text').textContent = `${gpsData.lat}, ${gpsData.lng}`;
-  document.getElementById('hud-gps').textContent = `${gpsData.address} | ${gpsData.raw}`;
+  if (pill) {
+    pill.className = 'gps-pill';
+    const pillText = document.getElementById('gps-pill-text');
+    if (pillText) pillText.textContent = `${gpsData.lat}, ${gpsData.lng}`;
+  }
+  const hudGps = document.getElementById('hud-gps');
+  if (hudGps) {
+    hudGps.textContent = `${gpsData.address} | ${gpsData.raw}`;
+  }
+  
+  // Automatically update template preview & active canvas watermark with new GPS info
+  updateTemplatePreview();
+  onWatermarkFieldChange();
 }
 
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id`);
     const data = await res.json();
+    
+    let foundCity = '';
     if (data && data.display_name) {
       const parts = data.display_name.split(',');
       gpsData.address = parts.slice(0, 4).join(',').trim();
+      
+      // Look for city/kabupaten in display_name parts
+      for (let part of parts) {
+        part = part.trim();
+        if (/Kabupaten|Kota/i.test(part)) {
+          let c = part.replace(/Kabupaten\s+/i, '')
+                      .replace(/Kota\s+/i, '')
+                      .trim();
+          if (c) {
+            foundCity = c;
+            break;
+          }
+        }
+      }
     }
-    if (data && data.address) {
+    
+    // Backup check in data.address if display_name loop did not find it
+    if (!foundCity && data && data.address) {
       let city = data.address.city || 
                  data.address.town || 
                  data.address.village || 
@@ -183,18 +211,19 @@ async function reverseGeocode(lat, lng) {
                  data.address.city_district ||
                  data.address.county || 
                  'Sragen';
-      gpsData.city = city.replace(/Kabupaten\s+/i, '')
-                         .replace(/Kota\s+/i, '')
-                         .replace(/\sRegency/i, '')
-                         .replace(/Kecamatan\s+/i, '')
-                         .trim();
-    } else {
-      gpsData.city = 'Sragen';
+      foundCity = city.replace(/Kabupaten\s+/i, '')
+                      .replace(/Kota\s+/i, '')
+                      .replace(/\sRegency/i, '')
+                      .replace(/Kecamatan\s+/i, '')
+                      .trim();
     }
+    
+    gpsData.city = foundCity || 'Sragen';
     updateGPSUI();
   } catch(e) {
     gpsData.address = `${gpsData.lat}, ${gpsData.lng}`;
     gpsData.city = 'Sragen';
+    updateGPSUI();
   }
 }
 
@@ -317,9 +346,9 @@ function formatIndonesianNumericDate(dateObj) {
 function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
 
-  // Watermark box dimensions
-  const wW = 425 * scale;
-  const wH = 180 * scale;
+  // Watermark box dimensions (slightly expanded to fit larger timestamp)
+  const wW = 455 * scale;
+  const wH = 195 * scale;
   const margin = 15 * scale;
 
   const x = px + margin;
@@ -350,8 +379,8 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
     ctx.fillText(orgName, x + 12 * scale, y + headerH / 2);
   }
 
-  // 4. Draw white vertical line separator
-  const sepX = x + 115 * scale;
+  // 4. Draw white vertical line separator (shifted right)
+  const sepX = x + 130 * scale;
   const sepY1 = y + headerH + 10 * scale;
   const sepY2 = y + wH - 10 * scale;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -361,7 +390,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.lineTo(sepX, sepY2);
   ctx.stroke();
 
-  // 5. Left column: Time and Date
+  // 5. Left column: Time and Date (Enlarged and positioned clearly)
   const dateObj = photoObj?.systemDate || capturedSystemDate || new Date();
   const dayName = getIndonesianDayName(dateObj);
   const rawDateStr = formatIndonesianNumericDate(dateObj);
@@ -370,33 +399,35 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${32 * scale}px 'Share Tech Mono', monospace`;
-  ctx.fillText(timeStr, x + 57 * scale, y + headerH + 42 * scale);
+  
+  // Large Time (scaled up from 32px to 38px)
+  ctx.font = `bold ${38 * scale}px 'Share Tech Mono', monospace`;
+  ctx.fillText(timeStr, x + 65 * scale, y + headerH + 46 * scale);
 
   // Thin horizontal separator line
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.lineWidth = 1 * scale;
   ctx.beginPath();
-  ctx.moveTo(x + 15 * scale, y + headerH + 52 * scale);
-  ctx.lineTo(sepX - 15 * scale, y + headerH + 52 * scale);
+  ctx.moveTo(x + 15 * scale, y + headerH + 58 * scale);
+  ctx.lineTo(sepX - 15 * scale, y + headerH + 58 * scale);
   ctx.stroke();
 
-  // Day and Date
-  ctx.font = `600 ${9.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(dayName, x + 57 * scale, y + headerH + 68 * scale);
-  ctx.fillText(rawDateStr, x + 57 * scale, y + headerH + 82 * scale);
+  // Day and Date (scaled up from 9.5px to 12px)
+  ctx.font = `bold ${12 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(dayName, x + 65 * scale, y + headerH + 74 * scale);
+  ctx.fillText(rawDateStr, x + 65 * scale, y + headerH + 90 * scale);
 
-  // 6. Right column: Details list (address, daerah, shift, karupam, regu)
+  // 6. Right column: Details list (scaled up details text)
   const detailX = sepX + 12 * scale;
   let detailY = y + headerH + 15 * scale;
-  const rightColW = wW - (115 + 24) * scale;
+  const rightColW = wW - (130 + 24) * scale;
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
-  ctx.font = `bold ${9 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${10.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
   // Icon
@@ -407,7 +438,6 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   let line = '';
   let lines = [];
   const maxLineW = rightColW - 14 * scale;
-  ctx.font = `600 ${9 * scale}px 'Exo 2', 'Arial', sans-serif`;
 
   for (let n = 0; n < addrWords.length; n++) {
     let testLine = line + addrWords[n] + ' ';
@@ -425,26 +455,26 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   const maxAddrLines = 3;
   for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
     ctx.fillText(lines[j], detailX + 14 * scale, detailY);
-    detailY += 11 * scale;
+    detailY += 13 * scale;
   }
 
   // Daerah
   ctx.fillText('🌐', detailX, detailY);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
   ctx.fillText(cityText, detailX + 14 * scale, detailY);
-  detailY += 12 * scale;
+  detailY += 14 * scale;
 
   // SST
   ctx.fillText('⏱️', detailX, detailY);
   const sstVal = document.getElementById('watermark-sst')?.value?.trim() || settings.sst || 'PAGI';
   ctx.fillText(`SST: ${sstVal}`, detailX + 14 * scale, detailY);
-  detailY += 12 * scale;
+  detailY += 14 * scale;
 
   // KARUPAM
   ctx.fillText('👤', detailX, detailY);
   const karupamVal = document.getElementById('watermark-karupam')?.value?.trim() || settings.karupam || 'WIJOKO';
   ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 14 * scale, detailY);
-  detailY += 12 * scale;
+  detailY += 14 * scale;
 
   // RUPAM
   ctx.fillText('👥', detailX, detailY);
