@@ -437,6 +437,109 @@ function capturePhoto() {
   setLayout(currentLayout);
 }
 
+function triggerGalleryUpload() {
+  const input = document.getElementById('gallery-input');
+  if (input) {
+    input.value = ''; // Reset to allow selecting the same file again
+    input.click();
+  }
+}
+
+function onGalleryFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('File harus berupa gambar');
+    return;
+  }
+
+  showToast('Membaca foto...');
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.getElementById('capture-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Constrain max size to 1920px
+      const maxDim = 1920;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+      processUploadedPhoto(dataURL);
+    };
+    img.onerror = function() {
+      showToast('Gagal memuat gambar');
+    };
+    img.src = event.target.result;
+  };
+  reader.onerror = function() {
+    showToast('Gagal membaca file');
+  };
+  reader.readAsDataURL(file);
+}
+
+function processUploadedPhoto(dataURL) {
+  // ── Grid capture mode ──
+  if (gridCaptureMode && pendingGridSlot) {
+    const { idx, n } = pendingGridSlot;
+    gridPhotos[idx] = {
+      dataURL: dataURL,
+      time: currentTime,
+      date: currentDate,
+      systemDate: new Date()
+    };
+    if (idx === 0) {
+      currentPhoto = dataURL;
+      capturedTime = currentTime;
+      capturedDate = currentDate;
+      capturedSystemDate = gridPhotos[idx].systemDate;
+    }
+    gridCaptureMode = false;
+    pendingGridSlot = null;
+    document.getElementById('grid-capture-bar').style.display = 'none';
+    document.getElementById('btn-shutter-label').textContent = '';
+    goScreen('preview-screen');
+    renderMultiGrid(n);
+    showToast(`Foto ${idx + 1} tersimpan ke grid`);
+    return;
+  }
+
+  // ── Normal capture mode ──
+  currentPhoto = dataURL;
+  capturedTime = currentTime;
+  capturedDate = currentDate;
+  capturedSystemDate = new Date();
+
+  // Populate gridPhotos[0] so layout 1 and other layouts have the photo immediately
+  gridPhotos[0] = {
+    dataURL: dataURL,
+    time: capturedTime,
+    date: capturedDate,
+    systemDate: capturedSystemDate
+  };
+  
+  goScreen('preview-screen');
+  populateTemplateSelect();
+  updateTemplatePreview();
+  setLayout(currentLayout);
+}
+
 function renderSinglePreview() {
   const filled = gridPhotos.filter(Boolean);
   if (!currentPhoto && !filled.length) return;
