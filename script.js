@@ -976,6 +976,13 @@ async function buildGridImage() {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, footerY, totalW, footerH);
 
+  // Draw footer text in red, bold, centered
+  ctx.fillStyle = '#ff0000';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold 20px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText('Foto ini diambil secara real-time dan akurat!', totalW / 2, footerY + footerH / 2);
+
   return canvas.toDataURL('image/jpeg', 0.92);
 }
 
