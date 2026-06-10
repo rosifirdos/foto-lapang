@@ -401,6 +401,12 @@ function capturePhoto() {
       date: currentDate,
       systemDate: new Date()
     };
+    if (idx === 0) {
+      currentPhoto = dataURL;
+      capturedTime = currentTime;
+      capturedDate = currentDate;
+      capturedSystemDate = gridPhotos[idx].systemDate;
+    }
     gridCaptureMode = false;
     pendingGridSlot = null;
     document.getElementById('grid-capture-bar').style.display = 'none';
@@ -416,6 +422,14 @@ function capturePhoto() {
   capturedTime = currentTime;
   capturedDate = currentDate;
   capturedSystemDate = new Date();
+
+  // Populate gridPhotos[0] so layout 1 and other layouts have the photo immediately
+  gridPhotos[0] = {
+    dataURL: dataURL,
+    time: capturedTime,
+    date: capturedDate,
+    systemDate: capturedSystemDate
+  };
   
   goScreen('preview-screen');
   populateTemplateSelect();
@@ -424,7 +438,8 @@ function capturePhoto() {
 }
 
 function renderSinglePreview() {
-  if (!currentPhoto) return;
+  const filled = gridPhotos.filter(Boolean);
+  if (!currentPhoto && !filled.length) return;
   buildGridImage().then(dataURL => {
     if (dataURL) {
       const canvas = document.getElementById('result-canvas');
