@@ -616,17 +616,17 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
 
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
-  ctx.font = `bold ${12.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${15.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
   // Icon
-  drawPinIcon(ctx, detailX, detailY, 13 * scale);
+  drawPinIcon(ctx, detailX, detailY, 15 * scale);
 
   // Wrap address text
   const addrWords = addrText.split(' ');
   let line = '';
   let lines = [];
-  const maxLineW = rightColW - 16 * scale;
+  const maxLineW = rightColW - 20 * scale;
 
   for (let n = 0; n < addrWords.length; n++) {
     let testLine = line + addrWords[n] + ' ';
@@ -643,15 +643,19 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   // Draw wrapped lines (max 4 lines to fit beautifully)
   const maxAddrLines = 4;
   for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
-    ctx.fillText(lines[j], detailX + 16 * scale, detailY);
-    detailY += 15 * scale;
+    ctx.fillText(lines[j], detailX + 20 * scale, detailY);
+    detailY += 18 * scale;
   }
 
+  // Spacing before Daerah
+  detailY += 6 * scale;
+
   // Daerah
-  drawGlobeIcon(ctx, detailX, detailY, 13 * scale);
+  drawGlobeIcon(ctx, detailX, detailY, 15 * scale);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
-  ctx.fillText(cityText, detailX + 16 * scale, detailY);
-  detailY += 16 * scale;
+  ctx.font = `bold ${15.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(cityText, detailX + 20 * scale, detailY);
+  detailY += 18 * scale;
 
 
 
