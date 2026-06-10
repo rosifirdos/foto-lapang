@@ -822,7 +822,7 @@ function renderMultiGrid(n) {
 
     if (gridPhotos[i]) {
       const c = document.createElement('canvas');
-      c.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;';
+      c.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;';
       slot.appendChild(c);
       renderStampedSlot(c, gridPhotos[i], i);
 
