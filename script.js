@@ -96,16 +96,7 @@ function goScreen(id) {
       const waktuMenit = `${pad(now.getHours())}.${pad(now.getMinutes())}`;
       waktuInp.value = `${waktuMenit} WIB s.d selesai`;
     }
-    // Populate the new watermark fields from settings
-    if (document.getElementById('watermark-sst')) {
-      document.getElementById('watermark-sst').value = settings.sst || 'PAGI';
-    }
-    if (document.getElementById('watermark-karupam')) {
-      document.getElementById('watermark-karupam').value = settings.karupam || 'WIJOKO';
-    }
-    if (document.getElementById('watermark-rupam')) {
-      document.getElementById('watermark-rupam').value = settings.rupam || 'RUPAM I';
-    }
+
     populateTemplateSelect();
     updateTemplatePreview();
   }
@@ -532,63 +523,7 @@ function drawGlobeIcon(ctx, x, y, size) {
   ctx.restore();
 }
 
-function drawTimerIcon(ctx, x, y, size) {
-  ctx.save();
-  ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = '#ffffff';
-  ctx.lineWidth = 1.2;
-  // Outer circle
-  ctx.beginPath();
-  ctx.arc(x + size/2, y + size/2 + 1, size/2.8, 0, Math.PI * 2);
-  ctx.stroke();
-  // Top button
-  ctx.fillRect(x + size/2 - 2, y + 1, 4, 2);
-  // Hands
-  ctx.beginPath();
-  ctx.moveTo(x + size/2, y + size/2 + 1);
-  ctx.lineTo(x + size/2, y + size/2 - size/5);
-  ctx.moveTo(x + size/2, y + size/2 + 1);
-  ctx.lineTo(x + size/2 + size/6, y + size/2 + 1);
-  ctx.stroke();
-  ctx.restore();
-}
 
-function drawUserIcon(ctx, x, y, size) {
-  ctx.save();
-  ctx.fillStyle = '#ffffff';
-  // Head
-  ctx.beginPath();
-  ctx.arc(x + size/2, y + size/3 + 1, size/4, 0, Math.PI * 2);
-  ctx.fill();
-  // Shoulders/body
-  ctx.beginPath();
-  ctx.arc(x + size/2, y + size * 0.9, size/2.5, Math.PI, 0);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawGroupIcon(ctx, x, y, size) {
-  ctx.save();
-  ctx.fillStyle = '#ffffff';
-  // Back head
-  ctx.beginPath();
-  ctx.arc(x + size/3 + 1, y + size/3 + 1, size/5, 0, Math.PI * 2);
-  ctx.fill();
-  // Back body
-  ctx.beginPath();
-  ctx.arc(x + size/3 + 1, y + size * 0.9, size/3, Math.PI, 0);
-  ctx.fill();
-  // Front head
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.beginPath();
-  ctx.arc(x + size * 0.65, y + size/3 + 2, size/5, 0, Math.PI * 2);
-  ctx.fill();
-  // Front body
-  ctx.beginPath();
-  ctx.arc(x + size * 0.65, y + size * 0.95, size/3, Math.PI, 0);
-  ctx.fill();
-  ctx.restore();
-}
 
 function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
@@ -703,22 +638,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillText(cityText, detailX + 16 * scale, detailY);
   detailY += 16 * scale;
 
-  // SST
-  drawTimerIcon(ctx, detailX, detailY, 13 * scale);
-  const sstVal = document.getElementById('watermark-sst')?.value?.trim() || settings.sst || 'PAGI';
-  ctx.fillText(`SST: ${sstVal}`, detailX + 16 * scale, detailY);
-  detailY += 16 * scale;
 
-  // KARUPAM
-  drawUserIcon(ctx, detailX, detailY, 13 * scale);
-  const karupamVal = document.getElementById('watermark-karupam')?.value?.trim() || settings.karupam || 'WIJOKO';
-  ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 16 * scale, detailY);
-  detailY += 16 * scale;
-
-  // RUPAM
-  drawGroupIcon(ctx, detailX, detailY, 13 * scale);
-  const rupamVal = document.getElementById('watermark-rupam')?.value?.trim() || settings.rupam || 'RUPAM I';
-  ctx.fillText(rupamVal, detailX + 16 * scale, detailY);
 
   ctx.restore();
 }
@@ -726,11 +646,6 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
 
 
 function onWatermarkFieldChange() {
-  settings.sst = document.getElementById('watermark-sst').value.trim();
-  settings.karupam = document.getElementById('watermark-karupam').value.trim();
-  settings.rupam = document.getElementById('watermark-rupam').value.trim();
-  saveSettingsData();
-
   if (currentLayout === 1) {
     renderSinglePreview();
   } else {
@@ -1362,9 +1277,6 @@ function removeTemplate(i) {
 }
 
 function saveSettings() {
-  if (document.getElementById('watermark-sst')) settings.sst = document.getElementById('watermark-sst').value.trim();
-  if (document.getElementById('watermark-karupam')) settings.karupam = document.getElementById('watermark-karupam').value.trim();
-  if (document.getElementById('watermark-rupam')) settings.rupam = document.getElementById('watermark-rupam').value.trim();
   saveSettingsData();
   populateQuickTitles();
   showToast('Pengaturan disimpan!');
