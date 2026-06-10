@@ -490,6 +490,106 @@ function formatIndonesianNumericDate(dateObj) {
   return `${pad(dateObj.getDate())}-${pad(dateObj.getMonth()+1)}-${dateObj.getFullYear()}`;
 }
 
+function drawPinIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  // Top circle
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/3 + 1, size/3.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Pin point
+  ctx.beginPath();
+  ctx.moveTo(x + size/2 - size/4, y + size/3 + 2);
+  ctx.lineTo(x + size/2, y + size * 0.85);
+  ctx.lineTo(x + size/2 + size/4, y + size/3 + 2);
+  ctx.closePath();
+  ctx.fill();
+  // Inner hole
+  ctx.fillStyle = 'rgb(13, 40, 166)'; // background blue
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/3 + 1, size/8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGlobeIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  // Outer circle
+  ctx.arc(x + size/2, y + size/2, size/2.5, 0, Math.PI * 2);
+  ctx.stroke();
+  // Horizontal line (equator)
+  ctx.beginPath();
+  ctx.moveTo(x + size/2 - size/2.5, y + size/2);
+  ctx.lineTo(x + size/2 + size/2.5, y + size/2);
+  ctx.stroke();
+  // Vertical ellipses (longitude lines)
+  ctx.beginPath();
+  ctx.ellipse(x + size/2, y + size/2, size/5, size/2.5, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTimerIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#ffffff';
+  ctx.lineWidth = 1.2;
+  // Outer circle
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/2 + 1, size/2.8, 0, Math.PI * 2);
+  ctx.stroke();
+  // Top button
+  ctx.fillRect(x + size/2 - 2, y + 1, 4, 2);
+  // Hands
+  ctx.beginPath();
+  ctx.moveTo(x + size/2, y + size/2 + 1);
+  ctx.lineTo(x + size/2, y + size/2 - size/5);
+  ctx.moveTo(x + size/2, y + size/2 + 1);
+  ctx.lineTo(x + size/2 + size/6, y + size/2 + 1);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawUserIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  // Head
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size/3 + 1, size/4, 0, Math.PI * 2);
+  ctx.fill();
+  // Shoulders/body
+  ctx.beginPath();
+  ctx.arc(x + size/2, y + size * 0.9, size/2.5, Math.PI, 0);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGroupIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  // Back head
+  ctx.beginPath();
+  ctx.arc(x + size/3 + 1, y + size/3 + 1, size/5, 0, Math.PI * 2);
+  ctx.fill();
+  // Back body
+  ctx.beginPath();
+  ctx.arc(x + size/3 + 1, y + size * 0.9, size/3, Math.PI, 0);
+  ctx.fill();
+  // Front head
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.beginPath();
+  ctx.arc(x + size * 0.65, y + size/3 + 2, size/5, 0, Math.PI * 2);
+  ctx.fill();
+  // Front body
+  ctx.beginPath();
+  ctx.arc(x + size * 0.65, y + size * 0.95, size/3, Math.PI, 0);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
 
@@ -570,7 +670,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   
   // Icon
-  ctx.fillText('📍', detailX, detailY);
+  drawPinIcon(ctx, detailX, detailY, 13 * scale);
 
   // Wrap address text
   const addrWords = addrText.split(' ');
@@ -598,25 +698,25 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   }
 
   // Daerah
-  ctx.fillText('🌐', detailX, detailY);
+  drawGlobeIcon(ctx, detailX, detailY, 13 * scale);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
   ctx.fillText(cityText, detailX + 16 * scale, detailY);
   detailY += 16 * scale;
 
   // SST
-  ctx.fillText('⏱️', detailX, detailY);
+  drawTimerIcon(ctx, detailX, detailY, 13 * scale);
   const sstVal = document.getElementById('watermark-sst')?.value?.trim() || settings.sst || 'PAGI';
   ctx.fillText(`SST: ${sstVal}`, detailX + 16 * scale, detailY);
   detailY += 16 * scale;
 
   // KARUPAM
-  ctx.fillText('👤', detailX, detailY);
+  drawUserIcon(ctx, detailX, detailY, 13 * scale);
   const karupamVal = document.getElementById('watermark-karupam')?.value?.trim() || settings.karupam || 'WIJOKO';
   ctx.fillText(`KARUPAM ${karupamVal}`, detailX + 16 * scale, detailY);
   detailY += 16 * scale;
 
   // RUPAM
-  ctx.fillText('👥', detailX, detailY);
+  drawGroupIcon(ctx, detailX, detailY, 13 * scale);
   const rupamVal = document.getElementById('watermark-rupam')?.value?.trim() || settings.rupam || 'RUPAM I';
   ctx.fillText(rupamVal, detailX + 16 * scale, detailY);
 
@@ -700,7 +800,10 @@ function renderMultiGrid(n) {
       };
       slot.appendChild(del);
     } else {
-      slot.innerHTML = `<div class="add-icon">📷<span>Foto ${i+1}</span></div>`;
+      slot.innerHTML = `<div class="add-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 4px;"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        <span>Foto ${i+1}</span>
+      </div>`;
       slot.onclick = () => selectGridPhoto(idx, n);
     }
     grid.appendChild(slot);
@@ -901,15 +1004,36 @@ async function buildGridImage() {
       ctx.fillStyle = 'rgba(13, 20, 35, 0.95)';
       ctx.fillRect(cx, cy, cellW, cellH);
       
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.font = `48px 'Exo 2'`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('📷', cx + cellW/2, cy + cellH/2 - 20);
+      // Draw a clean, vector camera shape instead of emoji
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      const camW = 80;
+      const camH = 52;
+      const camX = cx + cellW/2 - camW/2;
+      const camY = cy + cellH/2 - camH/2 - 15;
+      
+      ctx.beginPath();
+      roundRect(ctx, camX, camY, camW, camH, 8);
+      ctx.fill();
+      
+      ctx.fillStyle = 'rgba(13, 20, 35, 0.95)';
+      ctx.beginPath();
+      ctx.arc(cx + cellW/2, cy + cellH/2 - 15, 16, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.beginPath();
+      ctx.arc(cx + cellW/2, cy + cellH/2 - 15, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      roundRect(ctx, cx + cellW/2 - 20, camY - 10, 40, 10, 3);
+      ctx.fill();
       
       ctx.font = `20px 'Exo 2'`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.fillText(`Foto ${i+1}`, cx + cellW/2, cy + cellH/2 + 25);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`Foto ${i+1}`, cx + cellW/2, cy + cellH/2 + 35);
     }
   }
 
@@ -1076,11 +1200,9 @@ async function shareWA() {
   }
 
   // Photo count label
-  if (currentLayout === 1) {
-    document.getElementById('wa-photo-label').textContent = '📎 1 foto siap dilampirkan';
-  } else {
-    const n = filled.length;
-    document.getElementById('wa-photo-label').textContent = `📎 ${n} foto siap dilampirkan`;
+  const labelSpan = document.querySelector('#wa-photo-label span');
+  if (labelSpan) {
+    labelSpan.textContent = currentLayout === 1 ? '1 foto siap dilampirkan' : `${filled.length} foto siap dilampirkan`;
   }
 
   // Show modal
@@ -1193,7 +1315,9 @@ function renderSettings() {
     `<div class="template-item">
       <div style="padding:8px 10px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
         <input class="setting-block-name" value="${escHTML(t.name)}" oninput="settings.templates[${i}].name=this.value" placeholder="Nama template">
-        <div class="btn-icon" style="font-size:13px;" onclick="removeTemplate(${i})">🗑</div>
+        <div class="btn-icon" style="font-size:13px; display: flex; align-items: center; justify-content: center;" onclick="removeTemplate(${i})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+        </div>
       </div>
       <div style="padding:8px 10px;">
         <textarea class="setting-textarea" rows="4" oninput="settings.templates[${i}].body=this.value">${escHTML(t.body)}</textarea>
