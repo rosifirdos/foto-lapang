@@ -426,11 +426,27 @@ function capturePhoto() {
   capturedDate = currentDate;
   capturedSystemDate = new Date();
   
-  renderResultCanvas(currentPhoto);
   goScreen('preview-screen');
   populateTemplateSelect();
   updateTemplatePreview();
   setLayout(currentLayout);
+}
+
+function renderSinglePreview() {
+  if (!currentPhoto) return;
+  buildGridImage().then(dataURL => {
+    if (dataURL) {
+      const canvas = document.getElementById('result-canvas');
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = dataURL;
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -494,21 +510,12 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = 'rgb(13, 40, 166)';
   ctx.fillRect(x, y, wW, headerH);
 
-  // 3. Draw organization name inside header
-  const orgName = (settings.orgName || 'ASTEKPAM LAPAS SRAGEN').toUpperCase();
-  const words = orgName.split(' ');
+  // 3. Draw NexaCam brand inside header permanently
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  
-  if (words.length > 2) {
-    ctx.font = `bold ${10.5 * scale}px 'Exo 2', 'Arial', sans-serif`;
-    ctx.fillText(words.slice(0, 2).join(' '), x + 12 * scale, y + headerH / 2 - 6 * scale);
-    ctx.fillText(words.slice(2).join(' '), x + 12 * scale, y + headerH / 2 + 7 * scale);
-  } else {
-    ctx.font = `bold ${13 * scale}px 'Exo 2', 'Arial', sans-serif`;
-    ctx.fillText(orgName, x + 12 * scale, y + headerH / 2);
-  }
+  ctx.font = `bold ${14 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText('NexaCam', x + 12 * scale, y + headerH / 2);
 
   // 4. Draw white vertical line separator (shifted right to 160)
   const sepX = x + 160 * scale;
@@ -625,7 +632,7 @@ function onWatermarkFieldChange() {
   saveSettingsData();
 
   if (currentLayout === 1) {
-    if (currentPhoto) renderResultCanvas(currentPhoto);
+    renderSinglePreview();
   } else {
     renderMultiGrid(currentLayout);
   }
@@ -646,7 +653,7 @@ function setLayout(n) {
   if (n === 1) {
     single.style.display = '';
     multi.style.display = 'none';
-    if (currentPhoto) renderResultCanvas(currentPhoto);
+    renderSinglePreview();
   } else {
     single.style.display = 'none';
     multi.style.display = '';
@@ -731,14 +738,9 @@ function selectGridPhoto(idx, n) {
 // ═══════════════════════════════════════════════════
 async function downloadPhoto() {
   showToast('Menyiapkan foto...');
-  if (currentLayout === 1) {
-    if (!currentPhoto) { showToast('Belum ada foto'); return; }
-    const dataURL = await renderResultCanvas(currentPhoto);
-    triggerDownload(dataURL, `fieldcam_${Date.now()}.jpg`);
-  } else {
-    // Download composite grid
-    const dataURL = await buildGridImage();
-    triggerDownload(dataURL, `fieldcam_grid_${Date.now()}.jpg`);
+  const dataURL = await buildGridImage();
+  if (dataURL) {
+    triggerDownload(dataURL, `nexacam_${Date.now()}.jpg`);
   }
 }
 
@@ -752,10 +754,30 @@ function triggerDownload(dataURL, filename) {
 
 async function buildGridImage() {
   const filled = gridPhotos.filter(Boolean);
-  if (!filled.length) { showToast('Belum ada foto di grid'); return null; }
+  const count = filled.length;
+  if (!count) { showToast('Belum ada foto di grid'); return null; }
 
-  const n = currentLayout;
-  const cols = n <= 2 ? 2 : n <= 3 ? 3 : n <= 4 ? 2 : n <= 6 ? 3 : 3;
+  // Adjust grid layout dynamically based on the actual number of filled photos
+  let n, cols;
+  if (count === 1) {
+    n = 1; cols = 1;
+  } else if (count === 2) {
+    n = 2; cols = 2;
+  } else if (count === 3) {
+    n = 3; cols = 3;
+  } else if (count === 4) {
+    n = 4; cols = 2;
+  } else if (count === 5) {
+    n = 6; cols = 3;
+  } else if (count === 6) {
+    n = 6; cols = 3;
+  } else if (count === 7) {
+    n = 8; cols = 2;
+  } else if (count === 8) {
+    n = 8; cols = 2;
+  } else {
+    n = 9; cols = 3;
+  }
   const rows = Math.ceil(n / cols);
 
   // Cell size
@@ -821,12 +843,12 @@ async function buildGridImage() {
   ctx.fillStyle = '#ffe600';
   ctx.fillRect(0, headerH, totalW, yellowH);
 
-  // Yellow Bar Left Text (Lapas name, lowercased)
+  // Yellow Bar Left Text (Brand name, lowercased)
   ctx.fillStyle = '#000000';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = `bold 22px 'Exo 2', 'Arial', sans-serif`;
-  const barLeftText = (settings.orgName || 'Lapas IIA Sragen').toLowerCase();
+  const barLeftText = 'nexacam';
   ctx.fillText(barLeftText, 25, headerH + yellowH / 2);
 
   // Yellow Bar Right Text (Date)
@@ -848,7 +870,7 @@ async function buildGridImage() {
     const cx = col * (cellW + gap);
     const cy = gridY + row * (cellH + gap);
 
-    if (gridPhotos[i]) {
+    if (filled[i]) {
       await new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
@@ -867,12 +889,12 @@ async function buildGridImage() {
           ctx.restore();
 
           // Draw Marki Watermark for this cell
-          const photoObj = gridPhotos[i];
+          const photoObj = filled[i];
           drawMarkiWatermark(ctx, cx, cy, cellW, cellH, cellW / 1000, i, photoObj);
 
           resolve();
         };
-        img.src = typeof gridPhotos[i] === 'object' ? gridPhotos[i].dataURL : gridPhotos[i];
+        img.src = typeof filled[i] === 'object' ? filled[i].dataURL : filled[i];
       });
     } else {
       // Empty slot (gray placeholder)
@@ -1022,7 +1044,8 @@ function applyTimePreset(mode) {
 }
 
 async function shareWA() {
-  if (!currentPhoto && currentLayout === 1) { showToast('Belum ada foto'); return; }
+  const filled = gridPhotos.filter(Boolean);
+  if (!currentPhoto && !filled.length) { showToast('Belum ada foto'); return; }
 
   // Reset modal step states
   document.getElementById('wa-modal-step1').style.display = 'block';
@@ -1039,20 +1062,24 @@ async function shareWA() {
 
   // Draw thumbnail
   const thumb = document.getElementById('wa-thumb');
-  if (currentPhoto) {
+  let thumbSrc = currentPhoto;
+  if (!thumbSrc && filled.length > 0) {
+    thumbSrc = typeof filled[0] === 'object' ? filled[0].dataURL : filled[0];
+  }
+  if (thumbSrc) {
     const img = new Image();
     img.onload = () => {
       const ctx = thumb.getContext('2d');
       ctx.drawImage(img, 0, 0, thumb.width, thumb.height);
     };
-    img.src = currentPhoto;
+    img.src = thumbSrc;
   }
 
   // Photo count label
   if (currentLayout === 1) {
     document.getElementById('wa-photo-label').textContent = '📎 1 foto siap dilampirkan';
   } else {
-    const n = gridPhotos.filter(Boolean).length;
+    const n = filled.length;
     document.getElementById('wa-photo-label').textContent = `📎 ${n} foto siap dilampirkan`;
   }
 
@@ -1073,13 +1100,8 @@ async function doShareWA() {
     msg = buildMessage(settings.templates[idx]);
   }
 
-  // Build the photo dataURL
-  let photoDataURL = null;
-  if (currentLayout === 1 && currentPhoto) {
-    photoDataURL = await renderResultCanvas(currentPhoto);
-  } else if (currentLayout > 1) {
-    photoDataURL = await buildGridImage();
-  }
+  // Build the photo dataURL using buildGridImage for all layouts
+  let photoDataURL = await buildGridImage();
 
   // Copy text to clipboard so it can be pasted as caption on WhatsApp
   try {
@@ -1105,7 +1127,7 @@ async function doShareWA() {
       // Convert dataURL → Blob → File
       const res = await fetch(photoDataURL);
       const blob = await res.blob();
-      const file = new File([blob], `fieldcam_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const file = new File([blob], `nexacam_${Date.now()}.jpg`, { type: 'image/jpeg' });
 
       if (navigator.canShare({ files: [file] })) {
         closeWAModal();
@@ -1113,7 +1135,7 @@ async function doShareWA() {
         await navigator.share({
           files: [file],
           text: msg,
-          title: 'Laporan FieldCam'
+          title: 'Laporan NexaCam'
         });
         showToast('Berhasil dibagikan!');
         return;
@@ -1130,7 +1152,7 @@ async function doShareWA() {
 
   // ── Fallback: unduh foto + buka WA dengan petunjuk ──
   if (photoDataURL) {
-    triggerDownload(photoDataURL, `fieldcam_${Date.now()}.jpg`);
+    triggerDownload(photoDataURL, `nexacam_${Date.now()}.jpg`);
   }
   
   // Transition to step 2 for manual paste guidance
@@ -1179,7 +1201,6 @@ function renderSettings() {
     </div>`
   ).join('');
 
-  document.getElementById('org-name').value = settings.orgName || '';
 }
 
 function escHTML(s) {
@@ -1217,7 +1238,6 @@ function removeTemplate(i) {
 }
 
 function saveSettings() {
-  settings.orgName = document.getElementById('org-name').value.trim();
   if (document.getElementById('watermark-sst')) settings.sst = document.getElementById('watermark-sst').value.trim();
   if (document.getElementById('watermark-karupam')) settings.karupam = document.getElementById('watermark-karupam').value.trim();
   if (document.getElementById('watermark-rupam')) settings.rupam = document.getElementById('watermark-rupam').value.trim();
@@ -1267,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Handle title select change — update HUD
   document.getElementById('quick-title-select').addEventListener('change', function() {
-    const title = this.value || 'FieldCam';
+    const title = this.value || 'NexaCam';
     document.getElementById('hud-title').textContent = title;
     onWatermarkFieldChange();
   });

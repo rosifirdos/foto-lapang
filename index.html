@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FieldCam — Dokumentasi Lapangan</title>
+<title>NexaCam — Dokumentasi Lapangan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -16,7 +16,7 @@
 <!-- Warning banner for insecure contexts -->
 <div id="secure-context-warning" style="display:none; background:#ff3b5c; color:#fff; padding:12px; text-align:center; font-size:13px; font-weight:bold; z-index:9999; position:relative; line-height:1.5;">
   ⚠️ PERINGATAN: Aplikasi dibuka menggunakan koneksi tidak aman (HTTP atau File lokal).<br>
-  Browser memblokir izin Kamera & GPS. Agar aplikasi berfungsi, buka menggunakan koneksi HTTPS atau localhost.
+  Browser memblokir izin Kamera & GPS. Agar aplikasi berfungsi, buka menggunakan koneksi HTTPS or localhost.
 </div>
 
 <!-- Flash effect -->
@@ -35,7 +35,7 @@
       <div class="scanline"></div>
     </div>
     <div class="cam-top">
-      <div class="cam-title-display" id="hud-title">FIELDCAM</div>
+      <div class="cam-title-display" id="hud-title">NEXACAM</div>
       <div class="cam-time-display" id="hud-time">--:--:--</div>
       <div class="cam-gps-display" id="hud-gps">Mendapatkan lokasi...</div>
     </div>
@@ -320,17 +320,6 @@
       </div>
     </div>
 
-    <!-- Info branding -->
-    <div class="settings-card">
-      <div class="settings-card-title">Branding Foto</div>
-      <div class="setting-row">
-        <div class="setting-label">
-          Nama Organisasi
-          <div class="setting-sub">Tampil di header bingkai foto</div>
-        </div>
-        <input type="text" class="setting-input" id="org-name" placeholder="Perusahaan">
-      </div>
-    </div>
 
     <button class="btn-save" onclick="saveSettings()">💾 Simpan Pengaturan</button>
 
