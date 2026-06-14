@@ -647,7 +647,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
 
   // Watermark box dimensions (expanded to fit much larger timestamp)
-  const wW = 520 * scale;
+  const wW = 640 * scale;
   const wH = 220 * scale;
   const margin = 15 * scale;
 
@@ -670,8 +670,8 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.font = `bold ${14 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillText('NexaCam', x + 12 * scale, y + headerH / 2);
 
-  // 4. Draw white vertical line separator (shifted right to 160)
-  const sepX = x + 160 * scale;
+  // 4. Draw white vertical line separator (shifted right to 240)
+  const sepX = x + 240 * scale;
   const sepY1 = y + headerH + 10 * scale;
   const sepY2 = y + wH - 10 * scale;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -691,28 +691,28 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
   
-  // Large Time (increased from 38px to 46px)
-  ctx.font = `bold ${46 * scale}px 'Share Tech Mono', monospace`;
-  ctx.fillText(timeStr, x + 80 * scale, y + headerH + 52 * scale);
+  // Large Time (increased from 54px to 68px)
+  ctx.font = `bold ${68 * scale}px 'Share Tech Mono', monospace`;
+  ctx.fillText(timeStr, x + 120 * scale, y + headerH + 68 * scale);
 
   // Thin horizontal separator line
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.lineWidth = 1 * scale;
   ctx.beginPath();
-  ctx.moveTo(x + 15 * scale, y + headerH + 68 * scale);
-  ctx.lineTo(sepX - 15 * scale, y + headerH + 68 * scale);
+  ctx.moveTo(x + 15 * scale, y + headerH + 88 * scale);
+  ctx.lineTo(sepX - 15 * scale, y + headerH + 88 * scale);
   ctx.stroke();
 
-  // Day and Date (increased from 12px to 15px)
-  ctx.font = `bold ${15 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(dayName, x + 80 * scale, y + headerH + 88 * scale);
-  ctx.font = `bold ${14 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(rawDateStr, x + 80 * scale, y + headerH + 108 * scale);
+  // Day and Date (increased from 18px to 24px and 17px to 22px)
+  ctx.font = `bold ${24 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(dayName, x + 120 * scale, y + headerH + 120 * scale);
+  ctx.font = `bold ${22 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(rawDateStr, x + 120 * scale, y + headerH + 150 * scale);
 
   // 6. Right column: Details list (scaled up details text)
   const detailX = sepX + 12 * scale;
   let detailY = y + headerH + 15 * scale;
-  const rightColW = wW - (160 + 24) * scale;
+  const rightColW = wW - (240 + 24) * scale;
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
