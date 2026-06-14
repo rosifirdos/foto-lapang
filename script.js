@@ -926,9 +926,9 @@ async function buildGridImage() {
   const cellW = 800, cellH = 600;
   const gap = 3;
 
-  const headerH = 185;
-  const yellowH = 55;
-  const footerH = 50;
+  const headerH = 260;
+  const yellowH = 80;
+  const footerH = 75;
 
   const totalW = cols * cellW + (cols - 1) * gap;
   const totalH = headerH + yellowH + rows * cellH + (rows - 1) * gap + footerH;
@@ -950,12 +950,12 @@ async function buildGridImage() {
   ctx.textAlign = 'center';
   
   // Title
-  ctx.font = `bold 42px 'Inter', 'Arial', sans-serif`;
-  ctx.fillText(titleVal, totalW / 2, 65);
+  ctx.font = `bold 60px 'Inter', 'Arial', sans-serif`;
+  ctx.fillText(titleVal, totalW / 2, 90);
   
   // Description (Keterangan) - moved to the top header
   const ketText = document.getElementById('keterangan-input')?.value?.trim() || 'Kumpulan foto kerja lapangan';
-  ctx.font = `20px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `28px 'Inter', 'Arial', sans-serif`;
   
   const headerWords = ketText.split(' ');
   let line = '';
@@ -975,10 +975,10 @@ async function buildGridImage() {
   lines.push(line.trim());
   
   // Draw wrapped lines centered under the title
-  let textY = 110;
+  let textY = 150;
   for (let j = 0; j < Math.min(lines.length, 3); j++) {
     ctx.fillText(lines[j], totalW / 2, textY);
-    textY += 26;
+    textY += 36;
   }
 
   // 4. Draw Yellow Bar
@@ -989,16 +989,16 @@ async function buildGridImage() {
   ctx.fillStyle = '#000000';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold 22px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `bold 32px 'Inter', 'Arial', sans-serif`;
   const barLeftText = 'nexacam';
-  ctx.fillText(barLeftText, 25, headerH + yellowH / 2);
+  ctx.fillText(barLeftText, 35, headerH + yellowH / 2);
 
   // Yellow Bar Right Text (Date)
   ctx.textAlign = 'right';
   const firstPhotoObj = filled[0];
   const dateObj = firstPhotoObj?.systemDate || new Date();
   const dateStr = formatIndonesianDate(dateObj);
-  ctx.fillText(dateStr, totalW - 25, headerH + yellowH / 2);
+  ctx.fillText(dateStr, totalW - 35, headerH + yellowH / 2);
 
   // 5. Draw Photo Grid (with Gap)
   const gridY = headerH + yellowH;
@@ -1085,7 +1085,7 @@ async function buildGridImage() {
   ctx.fillStyle = '#ff0000';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold 20px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `bold 30px 'Inter', 'Arial', sans-serif`;
   ctx.fillText('Foto ini diambil secara real-time dan akurat!', totalW / 2, footerY + footerH / 2);
 
   return canvas.toDataURL('image/jpeg', 0.92);
