@@ -37,8 +37,8 @@ Hari/ tgl. : {tanggal}
 Pukul       : {pukul}
 
 Situasi dalam keadaan aman, terkendali dan kondusif. dan terima kasih.
-        
-          {kota}, {tanggal_saja}
+
+    {kota}, {tanggal_saja}
 
 KEPALA
 
@@ -61,7 +61,7 @@ function loadSettings() {
       settings = { ...settings, ...JSON.parse(s) };
       // Force update default templates if Laporan Trolling is not present or is old version
       const trollingTpl = settings.templates.find(t => t.name && t.name.includes('Trolling'));
-      if (!trollingTpl || !trollingTpl.body.includes('{pukul}') || !trollingTpl.body.includes('{kota}') || !trollingTpl.body.includes('\nKEPALA\n\nTTD\n')) {
+      if (!trollingTpl || !trollingTpl.body.includes('{pukul}') || !trollingTpl.body.includes('{kota}') || !trollingTpl.body.includes('\nKEPALA\n\nTTD\n') || trollingTpl.body.includes('          {kota}, {tanggal_saja}')) {
         settings.templates = getNewDefaultTemplates();
         saveSettingsData();
       }
@@ -667,7 +667,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${15 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${15 * scale}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText('NexaCam', x + 12 * scale, y + headerH / 2);
 
   // 4. Draw white vertical line separator (shifted to give right column more space)
@@ -692,7 +692,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   
   // Large Time
-  ctx.font = `bold ${92 * scale}px 'Share Tech Mono', monospace`;
+  ctx.font = `bold ${92 * scale}px 'JetBrains Mono', monospace`;
   ctx.fillText(timeStr, x + 130 * scale, y + headerH + 92 * scale);
 
   // Thin horizontal separator line
@@ -704,9 +704,9 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.stroke();
 
   // Day and Date
-  ctx.font = `bold ${30 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${30 * scale}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(dayName, x + 130 * scale, y + headerH + 148 * scale);
-  ctx.font = `bold ${28 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${28 * scale}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(rawDateStr, x + 130 * scale, y + headerH + 188 * scale);
 
   // 6. Right column: Details list (scaled up details text)
@@ -720,7 +720,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
   const rightFontSize = 23 * scale;
-  ctx.font = `bold ${rightFontSize}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${rightFontSize}px 'Inter', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
   // Icon
@@ -758,7 +758,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   // Daerah
   drawGlobeIcon(ctx, detailX, detailY + 2 * scale, rightFontSize);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
-  ctx.font = `bold ${rightFontSize}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${rightFontSize}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(cityText, detailX + 30 * scale, detailY);
   detailY += lineHeight;
 
@@ -950,12 +950,12 @@ async function buildGridImage() {
   ctx.textAlign = 'center';
   
   // Title
-  ctx.font = `bold 42px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold 42px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(titleVal, totalW / 2, 65);
   
   // Description (Keterangan) - moved to the top header
   const ketText = document.getElementById('keterangan-input')?.value?.trim() || 'Kumpulan foto kerja lapangan';
-  ctx.font = `20px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `20px 'Inter', 'Arial', sans-serif`;
   
   const headerWords = ketText.split(' ');
   let line = '';
@@ -989,7 +989,7 @@ async function buildGridImage() {
   ctx.fillStyle = '#000000';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold 22px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold 22px 'Inter', 'Arial', sans-serif`;
   const barLeftText = 'nexacam';
   ctx.fillText(barLeftText, 25, headerH + yellowH / 2);
 
@@ -1068,7 +1068,7 @@ async function buildGridImage() {
       roundRect(ctx, cx + cellW/2 - 20, camY - 10, 40, 10, 3);
       ctx.fill();
       
-      ctx.font = `20px 'Exo 2'`;
+      ctx.font = `20px 'Inter'`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1085,7 +1085,7 @@ async function buildGridImage() {
   ctx.fillStyle = '#ff0000';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold 20px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold 20px 'Inter', 'Arial', sans-serif`;
   ctx.fillText('Foto ini diambil secara real-time dan akurat!', totalW / 2, footerY + footerH / 2);
 
   return canvas.toDataURL('image/jpeg', 0.92);
