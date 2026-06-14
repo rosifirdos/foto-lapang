@@ -1240,7 +1240,15 @@ async function shareWA() {
     const img = new Image();
     img.onload = () => {
       const ctx = thumb.getContext('2d');
-      ctx.drawImage(img, 0, 0, thumb.width, thumb.height);
+      const iw = img.width;
+      const ih = img.height;
+      const scale = Math.max(thumb.width / iw, thumb.height / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = (thumb.width - dw) / 2;
+      const dy = (thumb.height - dh) / 2;
+      ctx.clearRect(0, 0, thumb.width, thumb.height);
+      ctx.drawImage(img, dx, dy, dw, dh);
     };
     img.src = thumbSrc;
   }
