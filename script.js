@@ -667,7 +667,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${15 * scale}px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `bold ${Math.round(15 * scale)}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText('NexaCam', x + 12 * scale, y + headerH / 2);
 
   // 4. Draw white vertical line separator (shifted to give right column more space)
@@ -692,7 +692,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   
   // Large Time
-  ctx.font = `bold ${92 * scale}px 'JetBrains Mono', monospace`;
+  ctx.font = `bold ${Math.round(92 * scale)}px 'JetBrains Mono', monospace`;
   ctx.fillText(timeStr, x + 130 * scale, y + headerH + 92 * scale);
 
   // Thin horizontal separator line
@@ -704,9 +704,9 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.stroke();
 
   // Day and Date
-  ctx.font = `bold ${30 * scale}px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `bold ${Math.round(30 * scale)}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(dayName, x + 130 * scale, y + headerH + 148 * scale);
-  ctx.font = `bold ${28 * scale}px 'Inter', 'Arial', sans-serif`;
+  ctx.font = `bold ${Math.round(28 * scale)}px 'Inter', 'Arial', sans-serif`;
   ctx.fillText(rawDateStr, x + 130 * scale, y + headerH + 188 * scale);
 
   // 6. Right column: Details list (scaled up details text)
@@ -719,7 +719,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
 
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
-  const rightFontSize = 23 * scale;
+  const rightFontSize = Math.round(23 * scale);
   ctx.font = `bold ${rightFontSize}px 'Inter', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
