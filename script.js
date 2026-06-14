@@ -646,9 +646,9 @@ function drawGlobeIcon(ctx, x, y, size) {
 function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.save();
 
-  // Watermark box dimensions (expanded to fit much larger timestamp)
-  const wW = 860 * scale;
-  const wH = 280 * scale;
+  // Watermark box dimensions (adjusted to be less wide to the side)
+  const wW = 660 * scale;
+  const wH = 250 * scale;
   const margin = 15 * scale;
 
   const x = px + margin;
@@ -659,7 +659,7 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillRect(x, y, wW, wH);
 
   // 2. Draw solid blue header bar
-  const headerH = 44 * scale;
+  const headerH = 40 * scale;
   ctx.fillStyle = 'rgb(13, 40, 166)';
   ctx.fillRect(x, y, wW, headerH);
 
@@ -667,11 +667,11 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${16 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${15 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillText('NexaCam', x + 12 * scale, y + headerH / 2);
 
-  // 4. Draw white vertical line separator (shifted right to 350)
-  const sepX = x + 350 * scale;
+  // 4. Draw white vertical line separator (shifted right to 300)
+  const sepX = x + 300 * scale;
   const sepY1 = y + headerH + 10 * scale;
   const sepY2 = y + wH - 10 * scale;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -691,45 +691,45 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
   
-  // Large Time (increased from 84px to 110px)
-  ctx.font = `bold ${110 * scale}px 'Share Tech Mono', monospace`;
-  ctx.fillText(timeStr, x + 175 * scale, y + headerH + 110 * scale);
+  // Large Time (increased from 84px to 94px)
+  ctx.font = `bold ${94 * scale}px 'Share Tech Mono', monospace`;
+  ctx.fillText(timeStr, x + 150 * scale, y + headerH + 94 * scale);
 
   // Thin horizontal separator line
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.lineWidth = 1 * scale;
   ctx.beginPath();
-  ctx.moveTo(x + 15 * scale, y + headerH + 126 * scale);
-  ctx.lineTo(sepX - 15 * scale, y + headerH + 126 * scale);
+  ctx.moveTo(x + 15 * scale, y + headerH + 110 * scale);
+  ctx.lineTo(sepX - 15 * scale, y + headerH + 110 * scale);
   ctx.stroke();
 
-  // Day and Date (increased from 28px to 36px and 26px to 34px)
-  ctx.font = `bold ${36 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(dayName, x + 175 * scale, y + headerH + 172 * scale);
-  ctx.font = `bold ${34 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(rawDateStr, x + 175 * scale, y + headerH + 218 * scale);
+  // Day and Date (increased from 28px to 30px and 26px to 28px)
+  ctx.font = `bold ${30 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(dayName, x + 150 * scale, y + headerH + 148 * scale);
+  ctx.font = `bold ${28 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(rawDateStr, x + 150 * scale, y + headerH + 188 * scale);
 
   // 6. Right column: Details list (scaled up details text)
   const detailX = sepX + 16 * scale;
-  let detailY = y + headerH + 20 * scale;
-  const rightColW = wW - (350 + 32) * scale;
+  let detailY = y + headerH + 16 * scale;
+  const rightColW = wW - (300 + 32) * scale;
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
   // Address
   const addrText = gpsData.address || 'Mendapatkan lokasi...';
-  ctx.font = `bold ${19 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.font = `bold ${17 * scale}px 'Exo 2', 'Arial', sans-serif`;
   ctx.fillStyle = '#ffffff';
   
   // Icon
-  drawPinIcon(ctx, detailX, detailY, 19 * scale);
+  drawPinIcon(ctx, detailX, detailY, 17 * scale);
 
   // Wrap address text
   const addrWords = addrText.split(' ');
   let line = '';
   let lines = [];
-  const maxLineW = rightColW - 25 * scale;
+  const maxLineW = rightColW - 23 * scale;
 
   for (let n = 0; n < addrWords.length; n++) {
     let testLine = line + addrWords[n] + ' ';
@@ -746,19 +746,19 @@ function drawMarkiWatermark(ctx, px, py, pW, pH, scale, slotIndex, photoObj) {
   // Draw wrapped lines (max 4 lines to fit beautifully)
   const maxAddrLines = 4;
   for (let j = 0; j < Math.min(lines.length, maxAddrLines); j++) {
-    ctx.fillText(lines[j], detailX + 25 * scale, detailY);
-    detailY += 22 * scale;
+    ctx.fillText(lines[j], detailX + 23 * scale, detailY);
+    detailY += 20 * scale;
   }
 
   // Spacing before Daerah
-  detailY += 10 * scale;
+  detailY += 8 * scale;
 
   // Daerah
-  drawGlobeIcon(ctx, detailX, detailY, 19 * scale);
+  drawGlobeIcon(ctx, detailX, detailY, 17 * scale);
   const cityText = `Daerah ${gpsData.city || 'Sragen'}`;
-  ctx.font = `bold ${19 * scale}px 'Exo 2', 'Arial', sans-serif`;
-  ctx.fillText(cityText, detailX + 25 * scale, detailY);
-  detailY += 22 * scale;
+  ctx.font = `bold ${17 * scale}px 'Exo 2', 'Arial', sans-serif`;
+  ctx.fillText(cityText, detailX + 23 * scale, detailY);
+  detailY += 20 * scale;
 
 
 
