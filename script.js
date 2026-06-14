@@ -38,14 +38,14 @@ Pukul       : {pukul}
 
 Situasi dalam keadaan aman, terkendali dan kondusif. dan terima kasih.
         
-                  {kota}, {tanggal_saja}
+          {kota}, {tanggal_saja}
 
-                                 KEPALA
+KEPALA
 
-                                    TTD
+TTD
 
-                                 GIYONO
-                 NIP.197010281995031001`
+GIYONO
+NIP.197010281995031001`
     },
     {
       name: 'Ringkas',
@@ -59,9 +59,9 @@ function loadSettings() {
     const s = localStorage.getItem('fieldcam_settings');
     if (s) {
       settings = { ...settings, ...JSON.parse(s) };
-      // Force update default templates if Laporan Trolling is not present or is old version or lacks right-alignment
+      // Force update default templates if Laporan Trolling is not present or is old version
       const trollingTpl = settings.templates.find(t => t.name && t.name.includes('Trolling'));
-      if (!trollingTpl || !trollingTpl.body.includes('{pukul}') || !trollingTpl.body.includes('{kota}') || !trollingTpl.body.includes('                                 KEPALA')) {
+      if (!trollingTpl || !trollingTpl.body.includes('{pukul}') || !trollingTpl.body.includes('{kota}') || !trollingTpl.body.includes('\nKEPALA\n\nTTD\n')) {
         settings.templates = getNewDefaultTemplates();
         saveSettingsData();
       }
